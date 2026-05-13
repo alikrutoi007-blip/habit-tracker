@@ -652,6 +652,21 @@
             color: #fff; font-family: inherit; font-size: 14px; padding: 8px;
         }
         .modal-input:focus { border-color: var(--color-done); }
+        .modal {
+            background: var(--panel-color); border: 1px solid var(--border-color);
+            min-width: 320px; max-width: 440px; width: 90%; box-shadow: var(--glow);
+        }
+        .modal-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 16px 20px; border-bottom: 1px solid var(--border-color);
+        }
+        .modal-title { font-size: 13px; color: var(--text-muted); letter-spacing: 0.05em; }
+        .modal-close {
+            background: transparent; border: none; color: var(--text-muted);
+            cursor: pointer; font-size: 16px; padding: 0; line-height: 1;
+        }
+        .modal-close:hover { color: var(--text-main); }
+        .modal-body { padding: 20px; }
         .color-picker { display: flex; gap: 6px; flex-wrap: wrap; }
         .color-swatch {
             width: 28px; height: 28px; cursor: pointer; border: 2px solid transparent;
@@ -1076,6 +1091,7 @@
         <a href="#rules" class="nav-link" data-i18n="nav_rules">ПРАВИЛА</a>
         <span class="nav-spacer"></span>
         <button class="nav-icon-btn" id="lang-toggle-btn" onclick="toggleLanguage()" title="Language">RU</button>
+        <button class="nav-icon-btn" id="signin-btn" data-i18n="sign_in" onclick="openSignIn()" title="Sign in">SIGN IN</button>
         <button class="nav-icon-btn" id="skin-toggle-btn" onclick="toggleSkinDropdown()" title="Theme">🎨</button>
         <button class="nav-icon-btn" onclick="openSettings()" title="Settings">⚙</button>
         <div id="skin-dropdown" class="skin-dropdown">
@@ -1319,6 +1335,11 @@
                         <span>English</span>
                     </label>
                 </div>
+            </div>
+
+            <div class="settings-section">
+                <div class="settings-label" data-i18n="settings_sync">// SYNC</div>
+                <div id="settings-sync-content"></div>
             </div>
 
             <div class="settings-section">
@@ -1705,7 +1726,87 @@
         }
     };
 
-    function updateAuthUI() {}
+    function updateAuthUI() {
+        const btn = document.getElementById('signin-btn');
+        const settingsBlock = document.getElementById('settings-sync-content');
+        if (Auth.isLoggedIn()) {
+            const email = Auth.userEmail() || '';
+            const short = email.length > 20 ? email.substring(0, 17) + '...' : email;
+            if (btn) {
+                btn.textContent = short;
+                btn.onclick = openSettings;
+                btn.title = email;
+            }
+            if (settingsBlock) {
+                settingsBlock.innerHTML =
+                    '<div style="font-size:12px; color:var(--text-muted); margin-bottom:8px;">'
+                    + escapeHtml(t('signed_in_as')) + ': ' + escapeHtml(email) +
+                    '</div>'
+                    + '<button class="btn" onclick="onSignOut()" data-i18n="sign_out" style="margin-right:6px;">' + escapeHtml(t('sign_out')) + '</button>'
+                    + '<button class="btn" onclick="onDeleteAccount()" data-i18n="delete_account">' + escapeHtml(t('delete_account')) + '</button>';
+            }
+        } else {
+            if (btn) {
+                btn.textContent = t('sign_in');
+                btn.onclick = openSignIn;
+                btn.title = '';
+            }
+            if (settingsBlock) {
+                settingsBlock.innerHTML =
+                    '<button class="btn" onclick="openSignIn()" data-i18n="sign_in_to_sync">' + escapeHtml(t('sign_in_to_sync')) + '</button>'
+                    + '<p style="color:var(--text-muted); font-size:11px; margin-top:8px;" data-i18n="local_data_stays">' + escapeHtml(t('local_data_stays')) + '</p>';
+            }
+        }
+    }
+
+    function openSignIn() {
+        if (!Auth.client) { showToast(t('toast_auth_error')); return; }
+        document.getElementById('signin-modal').style.display = 'flex';
+    }
+
+    function closeSignIn() {
+        document.getElementById('signin-modal').style.display = 'none';
+    }
+
+    async function onSendMagicLink() {
+        const input = document.getElementById('signin-email');
+        const email = (input.value || '').trim();
+        if (!email || email.indexOf('@') === -1) { showToast(t('toast_invalid_email')); return; }
+        try {
+            await Auth.sendMagicLink(email);
+            showToast(t('toast_check_inbox'));
+            closeSignIn();
+        } catch (e) {
+            console.error(e);
+            showToast(t('toast_auth_error'));
+        }
+    }
+
+    async function onGoogleSignIn() {
+        try {
+            await Auth.signInWithGoogle();
+        } catch (e) {
+            console.error(e);
+            showToast(t('toast_auth_error'));
+        }
+    }
+
+    async function onSignOut() {
+        await Auth.signOut();
+        showToast(t('toast_signed_out'));
+    }
+
+    async function onDeleteAccount() {
+        if (!confirm(t('confirm_delete_account'))) return;
+        try {
+            await Auth.deleteAccount();
+            showToast(t('toast_account_deleted'));
+        } catch (e) {
+            console.error(e);
+            showToast(t('toast_auth_error'));
+        }
+    }
+
     function handleLogin() {}
 
     // === STATE ===
@@ -2893,5 +2994,53 @@
         }
     });
 </script>
+
+<!-- SIGN-IN MODAL -->
+<div id="signin-modal" class="modal-overlay" style="display:none;" onclick="if(event.target===this) closeSignIn()">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" data-i18n="cloud_sync_title">// CLOUD SYNC</div>
+      <button class="modal-close" onclick="closeSignIn()" aria-label="Close">✕</button>
+    </div>
+    <div class="modal-body">
+      <p data-i18n="auth_subtitle" style="color:var(--text-muted); margin-bottom:14px; font-size:13px;">Sign in to access your data everywhere.</p>
+      <input type="email" id="signin-email" data-i18n="email_placeholder" data-i18n-attr="placeholder" placeholder="email@example.com" style="width:100%; padding:10px; background:var(--panel-color); border:1px solid var(--border-color); color:var(--text-main); font-family:var(--font-mono); margin-bottom:10px; border-radius:var(--radius);">
+      <button class="btn" onclick="onSendMagicLink()" data-i18n="send_magic_link" style="width:100%; margin-bottom:14px;">SEND MAGIC LINK</button>
+
+      <div style="display:flex; align-items:center; gap:10px; color:var(--text-muted); font-size:11px; margin:10px 0;">
+        <div style="flex:1; height:1px; background:var(--border-color);"></div>
+        <span data-i18n="or_divider">OR</span>
+        <div style="flex:1; height:1px; background:var(--border-color);"></div>
+      </div>
+
+      <button class="btn" onclick="onGoogleSignIn()" data-i18n="continue_with_google" style="width:100%;">CONTINUE WITH GOOGLE</button>
+
+      <p data-i18n="local_data_stays" style="color:var(--text-muted); font-size:11px; margin-top:14px; text-align:center;">Local data stays on this device.</p>
+    </div>
+  </div>
+</div>
+
+<!-- MIGRATION DIALOG -->
+<div id="migration-modal" class="modal-overlay" style="display:none;">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" data-i18n="data_conflict_title">// DATA CONFLICT</div>
+    </div>
+    <div class="modal-body">
+      <p data-i18n="data_conflict_body" style="margin-bottom:14px;">Found data both locally and in your account. Which version to keep?</p>
+      <div style="border:1px solid var(--border-color); padding:12px; margin-bottom:10px; border-radius:var(--radius);">
+        <div style="color:var(--accent-primary); font-weight:bold; margin-bottom:6px;" data-i18n="local_label">LOCAL (this device)</div>
+        <div id="migration-local-summary" style="font-size:12px; color:var(--text-muted); margin-bottom:10px;"></div>
+        <button class="btn" onclick="chooseMigration('local')" data-i18n="keep_local" style="width:100%;">KEEP LOCAL</button>
+      </div>
+      <div style="border:1px solid var(--border-color); padding:12px; border-radius:var(--radius);">
+        <div style="color:var(--accent-primary); font-weight:bold; margin-bottom:6px;" data-i18n="cloud_label">CLOUD (your account)</div>
+        <div id="migration-cloud-summary" style="font-size:12px; color:var(--text-muted); margin-bottom:10px;"></div>
+        <button class="btn" onclick="chooseMigration('cloud')" data-i18n="keep_cloud" style="width:100%;">KEEP CLOUD</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
