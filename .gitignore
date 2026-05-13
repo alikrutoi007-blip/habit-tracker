@@ -1,0 +1,12 @@
+# Local dev artifacts
+.DS_Store
+Thumbs.db
+*.log
+.vscode/
+.idea/
+
+# Local-only directories (не для публичного репо)
+docs/
+node_modules/
+.env
+.env.*

@@ -1,0 +1,1422 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PROTOCOL 30: WAR ROOM</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚔️</text></svg>">
+
+    <style>
+        :root {
+            --bg-color: #050505;
+            --panel-color: #0f0f0f;
+            --border-color: #333;
+            --accent-dim: #444;
+            --text-main: #e0e0e0;
+            --text-muted: #666;
+            --color-done: #00ff41;
+            --color-fail: #ff003c;
+            --glow: 0 0 5px rgba(0, 255, 65, 0.3);
+            --glow-red: 0 0 10px rgba(255, 0, 60, 0.4);
+            --color-warn: #f1c40f;
+            --glow-warn: 0 0 8px rgba(241,196,15,0.4);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; outline: none; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: Consolas, "Lucida Console", monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 60px 20px 20px 20px; /* Padding top for fixed nav */
+        }
+
+        /* --- NAVIGATION --- */
+        .nav-bar {
+            position: fixed;
+            top: 0; left: 0; width: 100%;
+            background: rgba(5, 5, 5, 0.95);
+            border-bottom: 1px solid var(--border-color);
+            padding: 10px 0;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            z-index: 100;
+            backdrop-filter: blur(5px);
+        }
+
+        .nav-link {
+            color: #666;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 14px;
+            padding: 5px 10px;
+            border: 1px solid transparent;
+            transition: 0.2s;
+        }
+
+        .nav-link:hover {
+            color: #fff;
+            border-color: #333;
+            background: #111;
+        }
+
+        .nav-count { color: var(--color-done); font-weight: bold; margin-left: 4px; }
+
+        /* --- UI FRAME --- */
+        .main-container {
+            width: 100%;
+            max-width: 1600px;
+            border: 1px solid var(--border-color);
+            background: var(--panel-color);
+            padding: 20px;
+            position: relative;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+            margin-bottom: 50px;
+        }
+
+        .corner { position: absolute; width: 15px; height: 15px; border: 2px solid var(--color-fail); transition: 0.3s; }
+        .tl { top: -1px; left: -1px; border-right: 0; border-bottom: 0; }
+        .tr { top: -1px; right: -1px; border-left: 0; border-bottom: 0; }
+        .bl { bottom: -1px; left: -1px; border-right: 0; border-top: 0; }
+        .br { bottom: -1px; right: -1px; border-left: 0; border-top: 0; }
+
+        /* --- QUOTE --- */
+        .quote-box {
+            text-align: center;
+            padding: 20px 0;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #222;
+            color: #888;
+            font-style: italic;
+            font-size: 16px;
+        }
+
+        /* --- HEADER --- */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+        }
+
+        h1 {
+            font-size: 32px;
+            text-transform: uppercase;
+            letter-spacing: -1px;
+            color: #fff;
+            margin-bottom: 5px;
+        }
+
+        .stats-panel { text-align: right; font-size: 14px; color: var(--text-muted); }
+        .highlight { color: var(--color-done); font-weight: bold; }
+        .progress-container { width: 100%; height: 6px; background: #222; margin-top: 10px; }
+        .progress-fill { height: 100%; background: var(--color-done); width: 0%; transition: width 0.5s ease; box-shadow: var(--glow); }
+        .header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+
+        /* --- EDIT MODE --- */
+        .tracker-grid.editing {
+            outline: 1px dashed var(--color-fail);
+            outline-offset: 8px;
+        }
+        .habit-label { position: relative; }
+        .habit-actions {
+            margin-left: auto;
+            display: none;
+            gap: 6px;
+        }
+        .tracker-grid.editing .habit-actions { display: inline-flex; }
+        .habit-action-btn {
+            background: transparent;
+            border: 1px solid #333;
+            color: #888;
+            cursor: pointer;
+            padding: 2px 6px;
+            font-family: inherit;
+            font-size: 11px;
+        }
+        .habit-action-btn:hover { color: #fff; border-color: #666; }
+        .habit-action-btn.danger:hover { color: var(--color-fail); border-color: var(--color-fail); }
+
+        .add-habit-row {
+            grid-column: 1 / -1;
+            padding: 12px;
+            text-align: center;
+            border: 1px dashed #444;
+            color: #888;
+            cursor: pointer;
+            background: transparent;
+            font-family: inherit;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        .add-habit-row:hover { color: var(--color-done); border-color: var(--color-done); }
+
+        /* --- GRID --- */
+        .tracker-grid {
+            display: grid;
+            grid-template-columns: 280px repeat(30, 1fr);
+            gap: 4px;
+            margin-bottom: 40px;
+            overflow-x: auto;
+        }
+
+        .day-header { text-align: center; font-size: 12px; color: var(--text-muted); padding-bottom: 5px; }
+        .day-header.today-header {
+            color: #fff;
+            font-weight: bold;
+            text-shadow: var(--glow);
+        }
+        .day-header.today-header::after {
+            content: 'TODAY';
+            display: block;
+            margin-top: 2px;
+            color: var(--color-done);
+            font-size: 9px;
+            letter-spacing: 0;
+        }
+        .habit-label {
+            display: flex; align-items: center; padding: 10px 15px;
+            background: #151515; border-left: 3px solid var(--accent-dim);
+            font-size: 13px; font-weight: bold; color: #ccc; text-transform: uppercase;
+        }
+        .check-cell {
+            background: #111; border: 1px solid #222; cursor: pointer;
+            transition: all 0.1s; position: relative;
+        }
+        .check-cell:hover { background: #222; }
+        .check-cell.today-cell {
+            border-color: rgba(255,255,255,0.35);
+            box-shadow: inset 0 0 0 1px rgba(0,255,65,0.35);
+        }
+        .check-cell.today-cell::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 50%;
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: var(--color-done);
+            transform: translateX(-50%);
+            box-shadow: var(--glow);
+        }
+        .check-cell.today-cell.active::after {
+            background: #000;
+            box-shadow: none;
+        }
+        .check-cell.active { background: var(--color-done); border-color: var(--color-done); }
+
+        /* --- SLEEP --- */
+        .sleep-section { border-top: 1px solid var(--border-color); padding-top: 20px; margin-bottom: 30px; }
+        .section-title { font-size: 18px; margin-bottom: 15px; color: #fff; display: flex; align-items: center; gap: 10px; border-left: 4px solid #fff; padding-left: 10px; }
+        .sleep-grid { display: grid; grid-template-columns: 280px repeat(30, 1fr); gap: 4px; }
+        .graph-container { grid-column: 2 / -1; height: 120px; background: #0a0a0a; border: 1px solid #222; margin-bottom: 5px; }
+        canvas { width: 100%; height: 100%; display: block; }
+        .sleep-input {
+            width: 100%; background: #111; border: 1px solid #333;
+            color: var(--text-muted); font-family: inherit; text-align: center;
+            font-size: 11px; padding: 5px 0;
+        }
+        .sleep-input:focus { border-color: var(--color-done); color: #fff; }
+        .sleep-input.today-sleep-input {
+            border-color: var(--color-done);
+            color: #fff;
+            box-shadow: inset 0 0 0 1px rgba(0,255,65,0.25);
+        }
+
+        /* --- JOURNAL (UPDATED) --- */
+        .log-section { border-top: 1px solid var(--border-color); padding-top: 20px; }
+        
+        .journal-container {
+            display: flex;
+            gap: 15px;
+            height: 350px;
+        }
+
+        .journal-sidebar {
+            width: 250px;
+            background: #080808;
+            border: 1px solid #333;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .journal-entry-item {
+            padding: 10px;
+            border-bottom: 1px solid #222;
+            cursor: pointer;
+            font-size: 12px;
+            color: #888;
+            transition: 0.2s;
+        }
+        .journal-entry-item:hover { background: #111; color: #fff; }
+        .journal-entry-item.active { background: #222; color: var(--color-done); border-left: 2px solid var(--color-done); }
+        .journal-date { font-weight: bold; margin-bottom: 3px; }
+        .journal-preview { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        .journal-main {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .log-area {
+            flex-grow: 1;
+            background-color: #080808; border: 1px solid #333;
+            color: #ddd; font-family: inherit; font-size: 14px; padding: 15px; resize: none; line-height: 1.5;
+        }
+        .log-area:focus { border-color: #555; }
+
+        .journal-controls {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        /* --- PLANNER --- */
+        .planner-section {
+            border-top: 1px solid var(--border-color);
+            padding-top: 20px;
+            margin-top: 30px;
+        }
+        .planner-container {
+            display: flex;
+            gap: 15px;
+            min-height: 350px;
+        }
+        .planner-sidebar {
+            width: 250px;
+            background: #080808;
+            border: 1px solid #333;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+        .plan-list-item {
+            padding: 10px;
+            border-bottom: 1px solid #222;
+            cursor: pointer;
+            font-size: 12px;
+            color: #888;
+            transition: 0.2s;
+        }
+        .plan-list-item:hover { background: #111; color: #fff; }
+        .plan-list-item.active {
+            background: #222;
+            color: var(--color-done);
+            border-left: 2px solid var(--color-done);
+        }
+        .plan-list-item.overdue { color: var(--color-fail); }
+        .plan-list-item.due-today { color: var(--color-warn); }
+        .plan-list-title { font-weight: bold; }
+        .plan-list-meta { font-size: 10px; color: #555; margin-top: 3px; }
+
+        .plan-new-btn {
+            padding: 10px; background: transparent;
+            border: none; border-top: 1px dashed #333;
+            color: var(--color-done); cursor: pointer;
+            font-family: inherit; font-size: 12px; font-weight: bold;
+            margin-top: auto;
+        }
+        .plan-new-btn:hover { background: #111; }
+
+        .planner-main {
+            flex-grow: 1; background: #080808; border: 1px solid #333;
+            padding: 15px; display: flex; flex-direction: column; gap: 10px;
+        }
+        .planner-empty {
+            color: #444; text-align: center; padding: 40px 20px;
+            font-size: 14px;
+        }
+        .plan-header {
+            display: flex; justify-content: space-between; align-items: center;
+            gap: 10px; border-bottom: 1px solid #222; padding-bottom: 10px;
+            flex-wrap: wrap;
+        }
+        .plan-title-input {
+            background: transparent; border: none; color: #fff;
+            font-size: 18px; font-weight: bold; font-family: inherit; flex-grow: 1; min-width: 200px;
+        }
+        .plan-title-input:focus { outline: 1px solid #333; }
+        .plan-meta {
+            font-size: 12px; color: var(--text-muted);
+            display: flex; gap: 15px; align-items: center;
+        }
+        .plan-meta input[type=date] {
+            background: #111; border: 1px solid #333; color: #ccc;
+            font-family: inherit; padding: 3px 6px;
+        }
+
+        .plan-items {
+            display: flex; flex-direction: column; gap: 4px; flex-grow: 1;
+        }
+        .plan-item {
+            display: flex; align-items: center; gap: 8px;
+            padding: 4px 6px; border: 1px solid transparent;
+        }
+        .plan-item:hover { background: #0a0a0a; border-color: #222; }
+        .plan-item-check {
+            width: 16px; height: 16px;
+            border: 1px solid #555; cursor: pointer;
+            flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+            font-size: 12px; line-height: 1;
+        }
+        .plan-item-check.done {
+            background: var(--color-done); color: #000; border-color: var(--color-done);
+        }
+        .plan-item-text {
+            flex-grow: 1; background: transparent; border: none;
+            color: #ddd; font-family: inherit; font-size: 14px;
+            padding: 2px 4px;
+        }
+        .plan-item-text:focus { outline: 1px solid #333; background: #0a0a0a; }
+        .plan-item.done .plan-item-text { color: var(--text-muted); text-decoration: line-through; }
+        .plan-item-delete {
+            background: transparent; border: none; color: #444;
+            cursor: pointer; font-size: 14px;
+        }
+        .plan-item-delete:hover { color: var(--color-fail); }
+        .plan-item-add {
+            color: #555; padding: 4px 6px; cursor: pointer; font-size: 13px;
+            display: inline-block;
+        }
+        .plan-item-add:hover { color: var(--color-done); }
+
+        .plan-actions {
+            display: flex; gap: 10px; justify-content: space-between;
+            border-top: 1px solid #222; padding-top: 10px; flex-wrap: wrap;
+        }
+
+        /* --- ARCHIVE --- */
+        .archive-section {
+            border-top: 1px solid var(--border-color);
+            padding-top: 15px; margin-top: 20px;
+        }
+        .archive-toggle {
+            background: transparent; border: none;
+            color: #888; font-family: inherit; font-size: 16px;
+            cursor: pointer; padding: 5px 0;
+            display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+        }
+        .archive-toggle:hover { color: #fff; }
+        .archive-list {
+            display: none; flex-direction: column; gap: 8px; margin-top: 15px;
+        }
+        .archive-section.open .archive-list { display: flex; }
+        .archived-plan {
+            border: 1px solid #222; padding: 10px; background: #080808;
+        }
+        .archived-plan-header {
+            display: flex; justify-content: space-between; align-items: center;
+            cursor: pointer; gap: 10px;
+        }
+        .archived-plan-title { color: var(--text-muted); font-weight: bold; }
+        .archived-plan-meta { color: #444; font-size: 11px; }
+        .archived-plan-items {
+            display: none; margin-top: 10px; padding-top: 10px;
+            border-top: 1px solid #222;
+        }
+        .archived-plan.open .archived-plan-items { display: block; }
+        .archived-plan-item {
+            padding: 3px 0; color: #888; font-size: 13px;
+        }
+        .archived-plan-item.done { text-decoration: line-through; color: #555; }
+        .archived-plan-actions {
+            display: flex; gap: 8px; margin-top: 10px;
+        }
+
+        /* --- TOAST --- */
+        .toast {
+            position: fixed; bottom: 20px; right: 20px;
+            background: #000; border: 1px solid var(--color-done);
+            color: var(--color-done); padding: 10px 20px;
+            font-family: inherit; box-shadow: var(--glow);
+            z-index: 200; opacity: 0; pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        .toast.visible { opacity: 1; }
+
+        /* --- RULES SECTION --- */
+        .rules-section {
+            border-top: 1px solid var(--border-color);
+            padding: 30px;
+            background: #0a0a0a;
+            margin-top: 30px;
+        }
+        
+        .rule-block {
+            margin-bottom: 25px;
+            padding-left: 20px;
+            border-left: 2px solid #333;
+        }
+        .rule-title { color: var(--color-done); font-weight: bold; margin-bottom: 10px; font-size: 16px; }
+        .rule-text { color: #aaa; font-size: 14px; line-height: 1.6; }
+        .rule-text strong { color: #fff; }
+        .rule-danger { color: var(--color-fail); }
+
+        /* --- MODAL --- */
+        .modal-overlay {
+            display: none;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); z-index: 500;
+            align-items: center; justify-content: center;
+        }
+        .modal-overlay.visible { display: flex; }
+        .modal-content {
+            background: var(--panel-color);
+            border: 1px solid var(--border-color);
+            padding: 25px; min-width: 320px; box-shadow: var(--glow);
+        }
+        .modal-input {
+            width: 100%; background: #111; border: 1px solid #333;
+            color: #fff; font-family: inherit; font-size: 14px; padding: 8px;
+        }
+        .modal-input:focus { border-color: var(--color-done); }
+        .color-picker { display: flex; gap: 6px; flex-wrap: wrap; }
+        .color-swatch {
+            width: 28px; height: 28px; cursor: pointer; border: 2px solid transparent;
+        }
+        .color-swatch.selected { border-color: #fff; }
+
+        /* --- FOOTER & BUTTONS --- */
+        footer { margin-top: 30px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #444; }
+
+        .btn { background: transparent; border: 1px solid #333; color: #555; padding: 8px 20px; cursor: pointer; font-family: inherit; font-weight: bold; transition: 0.2s; font-size: 12px;}
+        .btn:hover { border-color: #666; color: #ccc; }
+        .btn-primary { border-color: var(--color-done); color: var(--color-done); }
+        .btn-primary:hover { background: var(--color-done); color: #000; }
+        
+        .btn-reset:hover { border-color: var(--color-fail); color: var(--color-fail); }
+        .btn-sos { border-color: var(--color-fail); color: var(--color-fail); animation: pulse 2s infinite; }
+        .btn-sos:hover { background: var(--color-fail); color: #000; box-shadow: var(--glow-red); }
+
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+
+        #panic-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95); z-index: 999; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+        }
+        .panic-content { border: 2px solid var(--color-fail); padding: 40px; max-width: 600px; box-shadow: var(--glow-red); background: #000; }
+        .panic-steps li { list-style: none; margin: 15px 0; font-size: 20px; color: #fff; }
+        .close-panic { margin-top: 20px; background: var(--color-fail); color: black; border: none; padding: 10px 30px; font-size: 18px; cursor: pointer; font-weight: bold; }
+
+    </style>
+</head>
+<body>
+
+    <!-- NAV BAR -->
+    <nav class="nav-bar">
+        <a href="#top" class="nav-link">ГЛАВНАЯ</a>
+        <a href="#tracker" class="nav-link">ТРЕКЕР</a>
+        <a href="#sleep" class="nav-link">СОН</a>
+        <a href="#journal" class="nav-link">ЖУРНАЛ</a>
+        <a href="#planner" class="nav-link">ПЛАНЫ<span id="plan-count" class="nav-count"></span></a>
+        <a href="#rules" class="nav-link">ПРАВИЛА</a>
+    </nav>
+
+    <div class="main-container" id="top">
+        <div class="corner tl"></div><div class="corner tr"></div>
+        <div class="corner bl"></div><div class="corner br"></div>
+
+        <!-- QUOTE -->
+        <div class="quote-box">
+            “The relentless pursuit of pleasure and avoidance of pain leads to pain.”
+        </div>
+
+        <header>
+            <div>
+                <h1>WAR ROOM // PROTOCOL 30</h1>
+                <div class="progress-container">
+                    <div class="progress-fill" id="overall-progress"></div>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="stats-panel">
+                    <div>ВЫПОЛНЕНО: <span id="done-count" class="highlight">0</span> / <span id="total-count">0</span></div>
+                    <div>STATUS: <span style="color:var(--color-done)">ACTIVE</span></div>
+                </div>
+                <button id="edit-toggle" class="btn" onclick="toggleEditMode()">⚙ EDIT</button>
+            </div>
+        </header>
+
+        <!-- GRID -->
+        <div id="tracker" class="tracker-grid"></div>
+
+        <!-- SLEEP -->
+        <div id="sleep" class="sleep-section">
+            <div class="section-title">📉 ГРАФИК СНА (Цель: 8ч)</div>
+            <div class="sleep-grid">
+                <div class="graph-container">
+                    <canvas id="sleepCanvas"></canvas>
+                </div>
+                <div style="grid-column: 2/-1; display:flex;" id="sleep-inputs"></div>
+            </div>
+        </div>
+
+        <!-- JOURNAL -->
+        <div id="journal" class="log-section">
+            <div class="section-title">📝 ТАКТИЧЕСКИЙ ЖУРНАЛ</div>
+            
+            <div class="journal-container">
+                <!-- Sidebar List -->
+                <div class="journal-sidebar" id="journal-list">
+                    <!-- Записи будут тут -->
+                    <div style="padding:10px; color:#444; text-align:center;">Нет записей</div>
+                </div>
+
+                <!-- Main Edit Area -->
+                <div class="journal-main">
+                    <textarea id="daily-log" class="log-area" placeholder="Опиши состояние. Анализируй срывы. Фиксируй победы..."></textarea>
+                    <div class="journal-controls">
+                        <button class="btn" onclick="newEntry()">+ НОВАЯ ЗАПИСЬ</button>
+                        <button class="btn btn-primary" onclick="saveEntry()">СОХРАНИТЬ В АРХИВ</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PLANNER -->
+        <div id="planner" class="planner-section">
+            <div class="section-title">🎯 ПЛАНИРОВЩИК</div>
+            <div class="planner-container">
+                <div class="planner-sidebar" id="planner-sidebar">
+                    <!-- список планов, инжектится JS -->
+                </div>
+                <div class="planner-main" id="planner-main">
+                    <!-- активный план или приглашение -->
+                </div>
+            </div>
+        </div>
+
+        <!-- ARCHIVE -->
+        <div id="archive" class="archive-section">
+            <button class="archive-toggle" onclick="toggleArchive()">
+                <span id="archive-toggle-text">🏆 ВЫПОЛНЕННЫЕ ПЛАНЫ (0)</span>
+                <span id="archive-chevron">▼</span>
+            </button>
+            <div class="archive-list" id="archive-list"></div>
+        </div>
+
+        <!-- RULES SECTION -->
+        <div id="rules" class="rules-section">
+            <h2 style="color:#fff; margin-bottom: 20px; font-size:24px;">⛔ КОДЕКС ПОВЕДЕНИЯ</h2>
+
+            <div class="rule-block">
+                <div class="rule-title">✅ ПРАВИЛО №1: ПИТАНИЕ</div>
+                <div class="rule-text">
+                    ЕДА = ТОЛЬКО СТОЯ ИЛИ ЗА СТОЛОМ <strong>БЕЗ ЭКРАНОВ</strong><br>
+                    Если ты смотришь — ты не ешь.<br>
+                    Если ешь — ты ешь.
+                </div>
+            </div>
+
+            <div class="rule-block">
+                <div class="rule-title">✅ ПРАВИЛО №2: ГОЛОД ИЛИ СКУКА?</div>
+                <div class="rule-text">
+                    Хочешь жрать без голода?<br>
+                    → пей воду<br>
+                    → жди 10 минут<br>
+                    → если всё ещё хочешь — ешь
+                </div>
+            </div>
+
+            <div class="rule-block">
+                <div class="rule-title">✅ ПРАВИЛО №3: ОДНО БЛЮДО</div>
+                <div class="rule-text">
+                    Ешь одно блюдо — доел → <strong>СТОП</strong><br>
+                    Если хочешь добрать:<br>
+                    – через 10 мин<br>
+                    – не сразу
+                </div>
+            </div>
+
+            <div class="rule-block" style="border-left-color: var(--color-fail);">
+                <div class="rule-title rule-danger">🚭 КУРЕНИЕ: ZERO TOLERANCE</div>
+                <div class="rule-text">
+                    Ты бросаешь не сигареты.<br>
+                    Ты бросаешь <strong>слабую версию себя</strong>.
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <button class="btn btn-reset" onclick="resetData()">СБРОС ПРОГРЕССА</button>
+            <button class="btn btn-sos" onclick="togglePanic(true)">[🆘 SOS / СРЫВ]</button>
+        </footer>
+    </div>
+
+    <!-- PANIC MODAL -->
+    <div id="panic-overlay">
+        <div class="panic-content">
+            <h1 style="color: var(--color-fail); font-size: 40px;">⚠️ STOP</h1>
+            <p style="color: #666; margin-bottom: 20px;">ПРОТОКОЛ ЧРЕЗВЫЧАЙНОЙ СИТУАЦИИ</p>
+            <ul class="panic-steps">
+                <li>1. УБЕРИ РУКИ ОТ ТЕЛЕФОНА</li>
+                <li>2. СДЕЛАЙ 5 ГЛУБОКИХ ВДОХОВ</li>
+                <li>3. ВЫПЕЙ СТАКАН ВОДЫ (МЕДЛЕННО)</li>
+                <li>4. УПАЛ - ОТЖАЛСЯ (МАКСИМУМ РАЗ)</li>
+                <li>5. ВСПОМНИ: БОЛЬ — ЭТО РОСТ</li>
+            </ul>
+            <button class="close-panic" onclick="togglePanic(false)">Я В ПОРЯДКЕ, ПРОДОЛЖАЕМ</button>
+        </div>
+    </div>
+
+    <div id="habit-modal-overlay" class="modal-overlay">
+        <div class="modal-content">
+            <h3 style="color:#fff; margin-bottom:15px;">НОВАЯ ПРИВЫЧКА</h3>
+            <input type="text" id="habit-modal-name" placeholder="Название (с эмодзи)" class="modal-input" />
+            <div style="color:#888; font-size:12px; margin: 10px 0 5px 0;">Цвет:</div>
+            <div id="habit-modal-colors" class="color-picker"></div>
+            <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:15px;">
+                <button class="btn" onclick="closeHabitModal()">ОТМЕНА</button>
+                <button class="btn btn-primary" onclick="confirmAddHabit()">ДОБАВИТЬ</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+<script>
+    // === STATE ===
+    const TOTAL_DAYS = 30;
+
+    const DEFAULT_HABITS = [
+        { id: 'h1', name: '🚿 Холодный душ', color: '#3498db' },
+        { id: 'h2', name: '🚗 ПДД (30+ мин)', color: '#f1c40f' },
+        { id: 'h3', name: '💪 Тренировка / Активность', color: '#e74c3c' },
+        { id: 'h4', name: '🍽 Режим еды (без экрана)', color: '#2ecc71' },
+        { id: 'h5', name: '❌ NO FAP / NO PORN', color: '#9b59b6' },
+        { id: 'h6', name: '🚫 NO CIGARETTES', color: '#95a5a6' },
+        { id: 'h7', name: '📖 Чтение (20+ мин)', color: '#1abc9c' },
+        { id: 'h8', name: '💤 Сон до 23:30', color: '#34495e' }
+    ];
+
+    const HABIT_COLORS = ['#3498db','#f1c40f','#e74c3c','#2ecc71','#9b59b6','#95a5a6','#1abc9c','#34495e'];
+
+    let appData = {
+        habits: {},
+        sleep: new Array(TOTAL_DAYS).fill(''),
+        journal: [],
+        habitDefs: [],
+        plans: []
+    };
+
+    let editMode = false;
+    let selectedPlanId = null;
+
+    function getCurrentTrackerDay(date = new Date()) {
+        const day = date.getDate();
+        return day >= 1 && day <= TOTAL_DAYS ? day : null;
+    }
+
+    // === STORAGE ===
+    function loadData() {
+        const saved = localStorage.getItem('hardmode_v4');
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            appData.habits = parsed.habits || {};
+            appData.sleep = parsed.sleep || new Array(TOTAL_DAYS).fill('');
+            appData.journal = parsed.journal || [];
+            appData.habitDefs = (parsed.habitDefs && parsed.habitDefs.length)
+                ? parsed.habitDefs.map((h, i) => ({ order: i, ...h }))
+                : DEFAULT_HABITS.map((h, i) => ({ ...h, order: i }));
+            appData.plans = parsed.plans || [];
+        } else {
+            appData.habitDefs = DEFAULT_HABITS.map((h, i) => ({ ...h, order: i }));
+            appData.plans = [];
+        }
+    }
+
+    function saveData() {
+        localStorage.setItem('hardmode_v4', JSON.stringify(appData));
+        updateStats();
+        drawSleepGraph();
+        renderJournalList();
+        if (typeof renderPlanner === 'function') renderPlanner();
+        if (typeof renderArchive === 'function') renderArchive();
+        if (typeof updateNavCounter === 'function') updateNavCounter();
+    }
+
+    // --- RENDERERS ---
+    const grid = document.querySelector('.tracker-grid');
+    const sleepInputs = document.getElementById('sleep-inputs');
+
+    function init() {
+        loadData();
+        renderGrid();
+        renderSleepInputs();
+        renderJournalList();
+        renderPlanner();
+        renderArchive();
+        updateNavCounter();
+        updateStats();
+        drawSleepGraph();
+        window.addEventListener('resize', drawSleepGraph);
+    }
+
+    function renderGrid() {
+        grid.innerHTML = '';
+        grid.classList.toggle('editing', editMode);
+        const todayDay = getCurrentTrackerDay();
+        const emptyCorner = document.createElement('div');
+        grid.appendChild(emptyCorner);
+
+        for (let i = 1; i <= TOTAL_DAYS; i++) {
+            const d = document.createElement('div');
+            d.className = 'day-header';
+            if (i === todayDay) d.classList.add('today-header');
+            d.textContent = i;
+            grid.appendChild(d);
+        }
+
+        appData.habitDefs.forEach(habit => {
+            const label = document.createElement('div');
+            label.className = 'habit-label';
+            label.style.borderLeftColor = habit.color;
+            const text = document.createElement('span');
+            text.textContent = habit.name;
+            text.className = 'habit-name';
+            label.appendChild(text);
+            if (editMode) {
+                const actions = document.createElement('span');
+                actions.className = 'habit-actions';
+                actions.innerHTML = `
+                <button class="habit-action-btn" onclick="renameHabit('${habit.id}')">✎</button>
+                <button class="habit-action-btn danger" onclick="deleteHabit('${habit.id}')">🗑</button>
+            `;
+                label.appendChild(actions);
+            }
+            grid.appendChild(label);
+
+            for (let d = 1; d <= TOTAL_DAYS; d++) {
+                const key = `${habit.id}_${d}`;
+                const cell = document.createElement('div');
+                cell.className = 'check-cell';
+                if (d === todayDay) cell.classList.add('today-cell');
+                if (appData.habits[key]) cell.classList.add('active');
+                cell.onclick = () => toggleHabit(key, cell);
+                grid.appendChild(cell);
+            }
+        });
+
+        if (editMode) {
+            const addRow = document.createElement('button');
+            addRow.className = 'add-habit-row';
+            addRow.textContent = '+ НОВАЯ ПРИВЫЧКА';
+            addRow.onclick = addHabit;
+            grid.appendChild(addRow);
+        }
+    }
+
+    function renderSleepInputs() {
+        sleepInputs.innerHTML = '';
+        const todayDay = getCurrentTrackerDay();
+        for (let i = 0; i < TOTAL_DAYS; i++) {
+            const input = document.createElement('input');
+            input.type = 'number';
+            input.className = 'sleep-input';
+            if (i + 1 === todayDay) input.classList.add('today-sleep-input');
+            input.placeholder = '-';
+            input.value = appData.sleep[i];
+            input.oninput = (e) => {
+                appData.sleep[i] = e.target.value;
+                saveData();
+            };
+            sleepInputs.appendChild(input);
+        }
+    }
+
+    // --- JOURNAL LOGIC ---
+    const logArea = document.getElementById('daily-log');
+    const journalList = document.getElementById('journal-list');
+
+    function saveEntry() {
+        const text = logArea.value.trim();
+        if(!text) return alert("Пустая запись");
+
+        const newEntry = {
+            id: Date.now(),
+            date: new Date().toLocaleString('ru-RU', { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' }),
+            text: text
+        };
+
+        appData.journal.unshift(newEntry); // Add to top
+        saveData();
+        logArea.value = ''; // Clear
+    }
+
+    function newEntry() {
+        logArea.value = '';
+    }
+
+    function renderJournalList() {
+        journalList.innerHTML = '';
+        if(appData.journal.length === 0) {
+            journalList.innerHTML = '<div style="padding:10px; color:#444; text-align:center; font-size:12px;">Пусто</div>';
+            return;
+        }
+
+        appData.journal.forEach(entry => {
+            const item = document.createElement('div');
+            item.className = 'journal-entry-item';
+            item.innerHTML = `
+                <div class="journal-date">${entry.date}</div>
+                <div class="journal-preview">${entry.text.substring(0, 30)}...</div>
+            `;
+            item.onclick = () => loadEntry(entry);
+            journalList.appendChild(item);
+        });
+    }
+
+    function loadEntry(entry) {
+        logArea.value = entry.text;
+    }
+
+    // === HABITS EDIT MODE ===
+    function toggleEditMode() {
+        editMode = !editMode;
+        document.getElementById('edit-toggle').textContent = editMode ? '✓ ГОТОВО' : '⚙ EDIT';
+        renderGrid();
+    }
+
+    function renameHabit(id) {
+        const habit = appData.habitDefs.find(h => h.id === id);
+        if (!habit) return;
+        const newName = prompt('Новое название привычки:', habit.name);
+        if (newName && newName.trim() && newName.trim() !== habit.name) {
+            habit.name = newName.trim();
+            saveData();
+            renderGrid();
+        }
+    }
+    function deleteHabit(id) {
+        const habit = appData.habitDefs.find(h => h.id === id);
+        if (!habit) return;
+        if (!confirm(`Удалить привычку «${habit.name}»? Все её галочки тоже удалятся.`)) return;
+        appData.habitDefs = appData.habitDefs.filter(h => h.id !== id);
+        Object.keys(appData.habits).forEach(key => {
+            if (key.startsWith(id + '_')) delete appData.habits[key];
+        });
+        saveData();
+        renderGrid();
+    }
+    let _pendingColor = HABIT_COLORS[0];
+
+    function addHabit() {
+        document.getElementById('habit-modal-name').value = '';
+        _pendingColor = HABIT_COLORS[0];
+        const picker = document.getElementById('habit-modal-colors');
+        picker.innerHTML = '';
+        HABIT_COLORS.forEach(c => {
+            const sw = document.createElement('div');
+            sw.className = 'color-swatch' + (c === _pendingColor ? ' selected' : '');
+            sw.style.background = c;
+            sw.onclick = () => {
+                _pendingColor = c;
+                picker.querySelectorAll('.color-swatch').forEach(el => el.classList.remove('selected'));
+                sw.classList.add('selected');
+            };
+            picker.appendChild(sw);
+        });
+        document.getElementById('habit-modal-overlay').classList.add('visible');
+        setTimeout(() => document.getElementById('habit-modal-name').focus(), 50);
+    }
+
+    function closeHabitModal() {
+        document.getElementById('habit-modal-overlay').classList.remove('visible');
+    }
+
+    function confirmAddHabit() {
+        const name = document.getElementById('habit-modal-name').value.trim();
+        if (!name) { alert('Название обязательно'); return; }
+        const id = 'h_' + Date.now();
+        appData.habitDefs.push({
+            id,
+            name,
+            color: _pendingColor,
+            order: appData.habitDefs.length
+        });
+        closeHabitModal();
+        saveData();
+        renderGrid();
+    }
+
+    // === PLANNER ===
+    function newPlanId() {
+        return 'p_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
+    }
+    function newItemId() {
+        return 'i_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
+    }
+    function getPlan(id) {
+        return appData.plans.find(p => p.id === id);
+    }
+
+    function renderPlanner() {
+        renderPlannerSidebar();
+        renderPlannerMain();
+    }
+
+    function renderPlannerSidebar() {
+        const sidebar = document.getElementById('planner-sidebar');
+        if (!sidebar) return;
+        sidebar.innerHTML = '';
+        const active = appData.plans.filter(p => p.status === 'active');
+
+        if (active.length === 0) {
+            const empty = document.createElement('div');
+            empty.className = 'planner-empty';
+            empty.style.padding = '20px';
+            empty.textContent = 'нет активных планов';
+            sidebar.appendChild(empty);
+        } else {
+            const today = new Date().toISOString().slice(0,10);
+            active.forEach(plan => {
+                const item = document.createElement('div');
+                item.className = 'plan-list-item';
+                if (plan.id === selectedPlanId) item.classList.add('active');
+                if (plan.deadline) {
+                    if (plan.deadline < today) item.classList.add('overdue');
+                    else if (plan.deadline === today) item.classList.add('due-today');
+                }
+                const done = plan.items.filter(i => i.done).length;
+                const total = plan.items.length;
+                item.innerHTML = `
+                    <div class="plan-list-title">${escapeHtml(plan.title)}</div>
+                    <div class="plan-list-meta">${done}/${total}${plan.deadline ? ' · ' + plan.deadline : ''}</div>
+                `;
+                item.onclick = () => selectPlan(plan.id);
+                sidebar.appendChild(item);
+            });
+        }
+
+        const newBtn = document.createElement('button');
+        newBtn.className = 'plan-new-btn';
+        newBtn.textContent = '+ НОВЫЙ ПЛАН';
+        newBtn.onclick = newPlanForm;
+        sidebar.appendChild(newBtn);
+    }
+
+    function selectPlan(id) {
+        selectedPlanId = id;
+        renderPlanner();
+    }
+
+    function escapeHtml(s) {
+        return String(s).replace(/[&<>"']/g, c => ({
+            '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+        }[c]));
+    }
+
+    function renderPlannerMain() {
+        const main = document.getElementById('planner-main');
+        if (!main) return;
+        if (!selectedPlanId) {
+            main.innerHTML = '<div class="planner-empty">Выбери план слева или создай новый.</div>';
+            return;
+        }
+        const plan = getPlan(selectedPlanId);
+        if (!plan || plan.status !== 'active') {
+            selectedPlanId = null;
+            main.innerHTML = '<div class="planner-empty">План недоступен.</div>';
+            return;
+        }
+        const done = plan.items.filter(i => i.done).length;
+        const total = plan.items.length;
+        const today = new Date().toISOString().slice(0,10);
+        let titleColor = '';
+        if (plan.deadline) {
+            if (plan.deadline < today) titleColor = 'color:var(--color-fail);';
+            else if (plan.deadline === today) titleColor = 'color:var(--color-warn);';
+        }
+
+        main.innerHTML = `
+            <div class="plan-header">
+                <input class="plan-title-input" style="${titleColor}"
+                       value="${escapeHtml(plan.title)}"
+                       onchange="renamePlan('${plan.id}', this.value)" />
+                <div class="plan-meta">
+                    <span>прогресс: <strong>${done}/${total}</strong></span>
+                    <label>дедлайн:
+                        <input type="date" value="${plan.deadline || ''}"
+                               onchange="setPlanDeadline('${plan.id}', this.value)" />
+                    </label>
+                </div>
+            </div>
+            <div class="plan-items" id="plan-items-${plan.id}"></div>
+            <div class="plan-actions">
+                <div style="display:flex; gap:8px;">
+                    <button class="btn" onclick="duplicatePlan('${plan.id}')">⎘ КОПИЯ</button>
+                    <button class="btn" onclick="deletePlanForever('${plan.id}')">🗑 УДАЛИТЬ</button>
+                </div>
+                <button class="btn btn-primary" onclick="closePlan('${plan.id}')">ЗАКРЫТЬ ПЛАН</button>
+            </div>
+        `;
+
+        renderPlanItems(plan);
+    }
+
+    function renderPlanItems(plan) {
+        const wrap = document.getElementById('plan-items-' + plan.id);
+        if (!wrap) return;
+        wrap.innerHTML = '';
+        plan.items.forEach(item => {
+            const row = document.createElement('div');
+            row.className = 'plan-item' + (item.done ? ' done' : '');
+            row.innerHTML = `
+                <div class="plan-item-check ${item.done ? 'done' : ''}" onclick="toggleItem('${plan.id}','${item.id}')">${item.done ? '✓' : ''}</div>
+                <input class="plan-item-text" value="${escapeHtml(item.text)}"
+                       onchange="setItemText('${plan.id}','${item.id}', this.value)"
+                       onkeydown="onItemKey(event, '${plan.id}', '${item.id}')" />
+                <button class="plan-item-delete" onclick="deleteItem('${plan.id}','${item.id}')">×</button>
+            `;
+            wrap.appendChild(row);
+        });
+        const adder = document.createElement('div');
+        adder.className = 'plan-item-add';
+        adder.textContent = '+ пункт';
+        adder.onclick = () => addItem(plan.id, '', true);
+        wrap.appendChild(adder);
+    }
+
+    function newPlanForm() {
+        selectedPlanId = null;
+        renderPlannerSidebar();
+        const main = document.getElementById('planner-main');
+        main.innerHTML = `
+            <div class="plan-header">
+                <input id="new-plan-title" type="text" class="plan-title-input" placeholder="Название плана (например: План на Май)" />
+                <div class="plan-meta">
+                    <label>Дедлайн (опц.):</label>
+                    <input id="new-plan-deadline" type="date" />
+                </div>
+            </div>
+            <div class="planner-empty" style="text-align:left;">Создай план, потом добавишь пункты.</div>
+            <div class="plan-actions">
+                <button class="btn" onclick="cancelNewPlan()">ОТМЕНА</button>
+                <button class="btn btn-primary" onclick="createPlan()">СОЗДАТЬ</button>
+            </div>
+        `;
+        setTimeout(() => document.getElementById('new-plan-title').focus(), 50);
+    }
+
+    function cancelNewPlan() {
+        renderPlannerMain();
+    }
+
+    function createPlan() {
+        const title = document.getElementById('new-plan-title').value.trim();
+        if (!title) { alert('Название обязательно'); return; }
+        const deadline = document.getElementById('new-plan-deadline').value || null;
+        const plan = {
+            id: newPlanId(),
+            title,
+            deadline,
+            items: [],
+            status: 'active',
+            createdAt: Date.now(),
+            completedAt: null
+        };
+        appData.plans.push(plan);
+        selectedPlanId = plan.id;
+        saveData();
+    }
+
+    function renamePlan(planId, newTitle) {
+        const plan = getPlan(planId);
+        if (!plan) return;
+        const trimmed = newTitle.trim();
+        if (trimmed && trimmed !== plan.title) {
+            plan.title = trimmed;
+            saveData();
+        }
+    }
+    function setPlanDeadline(planId, value) {
+        const plan = getPlan(planId);
+        if (!plan) return;
+        plan.deadline = value || null;
+        saveData();
+    }
+    function toggleItem(planId, itemId) {
+        const plan = getPlan(planId);
+        if (!plan) return;
+        const item = plan.items.find(i => i.id === itemId);
+        if (!item) return;
+        item.done = !item.done;
+
+        if (plan.items.length > 0 && plan.items.every(i => i.done)) {
+            archivePlan(plan);
+            showToast('>> PLAN ARCHIVED');
+            return;
+        }
+        saveData();
+    }
+
+    function setItemText(planId, itemId, text) {
+        const plan = getPlan(planId);
+        if (!plan) return;
+        const item = plan.items.find(i => i.id === itemId);
+        if (!item) return;
+        const trimmed = text.trim();
+        if (!trimmed) {
+            plan.items = plan.items.filter(i => i.id !== itemId);
+        } else {
+            item.text = trimmed;
+        }
+        saveData();
+    }
+
+    function deleteItem(planId, itemId) {
+        const plan = getPlan(planId);
+        if (!plan) return;
+        plan.items = plan.items.filter(i => i.id !== itemId);
+        saveData();
+    }
+
+    function addItem(planId, text = '', focusNew = false) {
+        const plan = getPlan(planId);
+        if (!plan) return;
+        const item = { id: newItemId(), text: text, done: false };
+        plan.items.push(item);
+        saveData();
+        if (focusNew) {
+            setTimeout(() => {
+                const wrap = document.getElementById('plan-items-' + planId);
+                if (!wrap) return;
+                const inputs = wrap.querySelectorAll('.plan-item-text');
+                if (inputs.length) inputs[inputs.length - 1].focus();
+            }, 30);
+        }
+    }
+    function onItemKey(evt, planId, itemId) {
+        if (evt.key !== 'Enter') return;
+        evt.preventDefault();
+        const text = evt.target.value.trim();
+        const plan = getPlan(planId);
+        if (!plan) return;
+        const item = plan.items.find(i => i.id === itemId);
+        if (item) item.text = text;
+        if (!text) return;
+        addItem(planId, '', true);
+    }
+    function duplicatePlan(planId) {
+        const plan = getPlan(planId);
+        if (!plan) return;
+        const copy = {
+            id: newPlanId(),
+            title: plan.title + ' (копия)',
+            deadline: plan.deadline,
+            items: plan.items.map(i => ({ id: newItemId(), text: i.text, done: false })),
+            status: 'active',
+            createdAt: Date.now(),
+            completedAt: null
+        };
+        appData.plans.push(copy);
+        selectedPlanId = copy.id;
+        saveData();
+    }
+
+    function deletePlanForever(planId) {
+        const plan = getPlan(planId);
+        if (!plan) return;
+        if (!confirm(`Удалить план «${plan.title}» полностью? Это нельзя отменить.`)) return;
+        appData.plans = appData.plans.filter(p => p.id !== planId);
+        if (selectedPlanId === planId) selectedPlanId = null;
+        saveData();
+    }
+    function closePlan(planId) {
+        const plan = getPlan(planId);
+        if (!plan) return;
+        const done = plan.items.filter(i => i.done).length;
+        const total = plan.items.length;
+        if (total === 0) {
+            if (!confirm(`План «${plan.title}» без пунктов. Закрыть?`)) return;
+        } else if (done < total) {
+            if (!confirm(`Закрыть «${plan.title}» с ${total - done} невыполненных из ${total}?`)) return;
+        }
+        archivePlan(plan);
+    }
+
+    function archivePlan(plan) {
+        plan.status = 'archived';
+        plan.completedAt = Date.now();
+        if (selectedPlanId === plan.id) selectedPlanId = null;
+        saveData();
+    }
+
+    // === PLAN ARCHIVE ===
+    function renderArchive() {
+        const list = document.getElementById('archive-list');
+        if (!list) return;
+        list.innerHTML = '';
+        const archived = appData.plans.filter(p => p.status === 'archived')
+            .sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0));
+        document.getElementById('archive-toggle-text').textContent =
+            `🏆 ВЫПОЛНЕННЫЕ ПЛАНЫ (${archived.length})`;
+
+        archived.forEach(plan => {
+            const done = plan.items.filter(i => i.done).length;
+            const total = plan.items.length;
+            const closedDate = plan.completedAt
+                ? new Date(plan.completedAt).toLocaleDateString('ru-RU')
+                : '—';
+            const card = document.createElement('div');
+            card.className = 'archived-plan';
+            card.innerHTML = `
+                <div class="archived-plan-header" onclick="toggleArchivedCard(this)">
+                    <span class="archived-plan-title">${escapeHtml(plan.title)}</span>
+                    <span class="archived-plan-meta">${done}/${total} · закрыт ${closedDate}</span>
+                </div>
+                <div class="archived-plan-items">
+                    ${plan.items.map(i =>
+                        `<div class="archived-plan-item ${i.done ? 'done' : ''}">${i.done ? '✓' : '·'} ${escapeHtml(i.text)}</div>`
+                    ).join('')}
+                    <div class="archived-plan-actions">
+                        <button class="btn" onclick="restorePlan('${plan.id}'); event.stopPropagation();">↩ ВЕРНУТЬ</button>
+                        <button class="btn" onclick="deleteArchivedPlan('${plan.id}'); event.stopPropagation();">🗑 УДАЛИТЬ НАВСЕГДА</button>
+                    </div>
+                </div>
+            `;
+            list.appendChild(card);
+        });
+    }
+
+    function toggleArchivedCard(headerEl) {
+        headerEl.parentElement.classList.toggle('open');
+    }
+
+    function restorePlan(planId) {
+        const plan = getPlan(planId);
+        if (!plan) return;
+        plan.status = 'active';
+        plan.completedAt = null;
+        selectedPlanId = plan.id;
+        saveData();
+    }
+
+    function deleteArchivedPlan(planId) {
+        const plan = getPlan(planId);
+        if (!plan) return;
+        if (!confirm(`Удалить «${plan.title}» из архива навсегда? Это нельзя отменить.`)) return;
+        appData.plans = appData.plans.filter(p => p.id !== planId);
+        saveData();
+    }
+
+    function toggleArchive() {
+        const sec = document.getElementById('archive');
+        sec.classList.toggle('open');
+        document.getElementById('archive-chevron').textContent =
+            sec.classList.contains('open') ? '▲' : '▼';
+    }
+
+    // --- CORE LOGIC ---
+    function toggleHabit(key, element) {
+        if (appData.habits[key]) {
+            delete appData.habits[key];
+            element.classList.remove('active');
+        } else {
+            appData.habits[key] = true;
+            element.classList.add('active');
+        }
+        saveData();
+    }
+
+    function updateStats() {
+        const totalChecks = appData.habitDefs.length * TOTAL_DAYS;
+        const currentChecks = Object.keys(appData.habits).length;
+        const percent = totalChecks > 0 ? Math.round((currentChecks / totalChecks) * 100) : 0;
+        document.getElementById('done-count').innerText = currentChecks;
+        document.getElementById('total-count').innerText = totalChecks;
+        document.getElementById('overall-progress').style.width = percent + '%';
+    }
+
+    function drawSleepGraph() {
+        const canvas = document.getElementById('sleepCanvas');
+        const ctx = canvas.getContext('2d');
+        const container = canvas.parentElement;
+        canvas.width = container.offsetWidth;
+        canvas.height = container.offsetHeight;
+        
+        const w = canvas.width;
+        const h = canvas.height;
+        ctx.clearRect(0,0,w,h);
+
+        // Guide line 8h
+        const targetY = h - (8/12)*h;
+        ctx.strokeStyle = '#333';
+        ctx.beginPath(); ctx.moveTo(0, targetY); ctx.lineTo(w, targetY); ctx.stroke();
+        ctx.fillStyle = '#666'; ctx.fillText('8h', 5, targetY-2);
+
+        const stepX = w / TOTAL_DAYS;
+        ctx.beginPath();
+        ctx.strokeStyle = '#00ff41';
+        ctx.lineWidth = 2;
+        ctx.shadowColor = '#00ff41'; ctx.shadowBlur = 10;
+        
+        let hasStart = false;
+        for(let i=0; i<TOTAL_DAYS; i++) {
+            const val = parseFloat(appData.sleep[i]);
+            if(val > 0) {
+                let y = h - (val/12)*h;
+                let x = (i*stepX) + (stepX/2);
+                if(!hasStart) { ctx.moveTo(x,y); hasStart = true; } 
+                else { ctx.lineTo(x,y); }
+            }
+        }
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        ctx.fillStyle = '#fff';
+        for(let i=0; i<TOTAL_DAYS; i++) {
+            const val = parseFloat(appData.sleep[i]);
+            if(val > 0) {
+                let y = h - (val/12)*h;
+                let x = (i*stepX) + (stepX/2);
+                ctx.beginPath(); ctx.arc(x,y,3,0,Math.PI*2); ctx.fill();
+            }
+        }
+    }
+
+    function resetData() {
+        if (confirm('УДАЛИТЬ ВЕСЬ ПРОГРЕСС, ЖУРНАЛ, ПЛАНЫ И КАСТОМНЫЕ ПРИВЫЧКИ?')) {
+            localStorage.removeItem('hardmode_v4');
+            location.reload();
+        }
+    }
+
+    function togglePanic(show) {
+        document.getElementById('panic-overlay').style.display = show ? 'flex' : 'none';
+    }
+
+    // === NAV COUNTER ===
+    function updateNavCounter() {
+        const el = document.getElementById('plan-count');
+        if (!el) return;
+        const count = appData.plans.filter(p => p.status === 'active').length;
+        el.textContent = count > 0 ? ` (${count})` : '';
+    }
+
+    // === TOAST ===
+    let _toastTimer = null;
+    function showToast(text, duration = 2000) {
+        const t = document.getElementById('toast');
+        if (!t) return;
+        t.textContent = text;
+        t.classList.add('visible');
+        if (_toastTimer) clearTimeout(_toastTimer);
+        _toastTimer = setTimeout(() => t.classList.remove('visible'), duration);
+    }
+
+    init();
+</script>
+</body>
+</html>

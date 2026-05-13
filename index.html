@@ -1,0 +1,2437 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PROTOCOL 30: WAR ROOM</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚔️</text></svg>">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <script>
+        (function() {
+            var t = localStorage.getItem('theme') || 'protocol30';
+            document.documentElement.dataset.theme = t;
+        })();
+    </script>
+
+    <style>
+        :root {
+            --color-fail: #ff003c;
+            --glow-red: 0 0 10px rgba(255, 0, 60, 0.4);
+            --color-warn: #f1c40f;
+            --glow-warn: 0 0 8px rgba(241,196,15,0.4);
+
+            /* PROTOCOL 30 defaults — applied even before body class lands (FOUC safety) */
+            --bg-color: #050505;
+            --panel-color: #0f0f0f;
+            --border-color: #333;
+            --accent-dim: #444;
+            --text-main: #e0e0e0;
+            --text-muted: #666;
+            --color-done: #00ff41;
+            --glow: 0 0 5px rgba(0, 255, 65, 0.3);
+            --accent-primary: var(--color-done);
+            --font-ui: Consolas, "Lucida Console", monospace;
+            --font-mono: Consolas, "Lucida Console", monospace;
+            --radius: 0;
+            --panel-bg: var(--panel-color);
+            --panel-blur: none;
+        }
+
+        body.theme-protocol30 {
+            --bg-color: #050505;
+            --panel-color: #0f0f0f;
+            --border-color: #333;
+            --accent-dim: #444;
+            --text-main: #e0e0e0;
+            --text-muted: #666;
+            --color-done: #00ff41;
+            --glow: 0 0 5px rgba(0, 255, 65, 0.3);
+            --accent-primary: var(--color-done);
+            --font-ui: Consolas, "Lucida Console", monospace;
+            --font-mono: Consolas, "Lucida Console", monospace;
+            --radius: 0;
+            --panel-bg: var(--panel-color);
+            --panel-blur: none;
+        }
+
+        body.theme-premium {
+            --bg-color: #0a0a0a;
+            --panel-color: rgba(255, 255, 255, 0.04);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --accent-dim: #444;
+            --text-main: #e8e8e8;
+            --text-muted: #888;
+            --color-done: #00ff41;
+            --glow: 0 0 20px rgba(255, 79, 0, 0.4);
+            --accent-primary: #FF4F00;
+            --font-ui: 'Manrope', system-ui, sans-serif;
+            --font-mono: 'JetBrains Mono', Consolas, monospace;
+            --radius: 12px;
+            --panel-bg: rgba(255, 255, 255, 0.04);
+            --panel-blur: blur(20px);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; outline: none; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: var(--font-ui);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 60px 20px 20px 20px;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        /* --- NAVIGATION --- */
+        .nav-bar {
+            position: fixed;
+            top: 0; left: 0; width: 100%;
+            background: rgba(5, 5, 5, 0.95);
+            border-bottom: 1px solid var(--border-color);
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            z-index: 100;
+            backdrop-filter: blur(5px);
+        }
+
+        .nav-link {
+            color: #666;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 14px;
+            padding: 5px 10px;
+            border: 1px solid transparent;
+            transition: 0.2s;
+        }
+
+        .nav-link:hover {
+            color: #fff;
+            border-color: #333;
+            background: #111;
+        }
+
+        .nav-spacer { flex: 1; }
+        .nav-icon-btn {
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 16px;
+            padding: 4px 10px;
+            font-family: inherit;
+            transition: 0.2s;
+        }
+        .nav-icon-btn:hover {
+            color: var(--text-main);
+            border-color: var(--border-color);
+        }
+
+        .skin-dropdown {
+            position: absolute;
+            top: 45px;
+            right: 50px;
+            background: var(--panel-color);
+            border: 1px solid var(--border-color);
+            backdrop-filter: var(--panel-blur);
+            border-radius: var(--radius);
+            padding: 4px;
+            display: none;
+            flex-direction: column;
+            gap: 2px;
+            z-index: 200;
+            min-width: 200px;
+        }
+        .skin-dropdown.visible { display: flex; }
+        .skin-option {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 12px;
+            padding: 10px 12px;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: 0.2s;
+        }
+        .skin-option:hover { background: rgba(255,255,255,0.05); color: var(--text-main); }
+        .skin-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            border: 1px solid var(--text-muted);
+            display: inline-block;
+        }
+        .skin-option.active .skin-dot {
+            background: var(--accent-primary);
+            border-color: var(--accent-primary);
+            box-shadow: var(--glow);
+        }
+        .skin-option.active { color: var(--accent-primary); }
+
+        .nav-count { color: var(--color-done); font-weight: bold; margin-left: 4px; }
+
+        /* --- HERO --- */
+        .hero {
+            width: 100%;
+            max-width: 1600px;
+            padding: 60px 20px 40px;
+            text-align: left;
+            position: relative;
+        }
+        .hero-quote {
+            font-style: italic;
+            color: var(--text-muted);
+            margin-bottom: 20px;
+            font-size: 16px;
+            max-width: 600px;
+        }
+        .hero-title {
+            font-family: var(--font-ui);
+            font-size: clamp(48px, 8vw, 120px);
+            font-weight: 800;
+            letter-spacing: -0.04em;
+            line-height: 0.85;
+            margin: 0 0 20px 0;
+            color: var(--text-main);
+            position: relative;
+            display: inline-block;
+        }
+        .hero-title .text-fill-layer,
+        .hero-title .text-outline-layer {
+            display: block;
+        }
+        .hero-title .text-outline-layer {
+            position: absolute;
+            top: 0; left: 0;
+            color: transparent;
+            pointer-events: none;
+        }
+        .hero-meta {
+            font-family: var(--font-mono);
+            font-size: 18px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 15px;
+        }
+        .hero-day { letter-spacing: 0.05em; }
+        .hero-streak {
+            color: var(--accent-primary);
+            font-weight: bold;
+            display: none;
+        }
+        .hero-streak.visible { display: inline; }
+        .hero-progress {
+            width: 100%;
+            max-width: 600px;
+            height: 6px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .hero-progress-fill {
+            height: 100%;
+            background: var(--accent-primary);
+            width: 0%;
+            transition: width 0.6s ease;
+            box-shadow: var(--glow);
+        }
+        .header-subtitle {
+            font-family: var(--font-mono);
+            color: var(--text-muted);
+            font-size: 12px;
+            letter-spacing: 0.2em;
+            margin-bottom: 10px;
+        }
+
+        /* --- UI FRAME --- */
+        .main-container {
+            width: 100%;
+            max-width: 1600px;
+            border: 1px solid var(--border-color);
+            background: var(--panel-color);
+            padding: 20px;
+            position: relative;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+            margin-bottom: 50px;
+        }
+
+        .corner { position: absolute; width: 15px; height: 15px; border: 2px solid var(--color-fail); transition: 0.3s; }
+        .tl { top: -1px; left: -1px; border-right: 0; border-bottom: 0; }
+        .tr { top: -1px; right: -1px; border-left: 0; border-bottom: 0; }
+        .bl { bottom: -1px; left: -1px; border-right: 0; border-top: 0; }
+        .br { bottom: -1px; right: -1px; border-left: 0; border-top: 0; }
+
+        /* --- HEADER --- */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+        }
+
+        .stats-panel { text-align: right; font-size: 14px; color: var(--text-muted); }
+        .highlight { color: var(--color-done); font-weight: bold; }
+        .progress-container { width: 100%; height: 6px; background: #222; margin-top: 10px; }
+        .progress-fill { height: 100%; background: var(--color-done); width: 0%; transition: width 0.5s ease; box-shadow: var(--glow); }
+        .header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+
+        /* --- EDIT MODE --- */
+        .tracker-grid.editing {
+            outline: 1px dashed var(--color-fail);
+            outline-offset: 8px;
+        }
+        .habit-label { position: relative; }
+        .habit-actions {
+            margin-left: auto;
+            display: none;
+            gap: 6px;
+        }
+        .tracker-grid.editing .habit-actions { display: inline-flex; }
+        .habit-action-btn {
+            background: transparent;
+            border: 1px solid #333;
+            color: #888;
+            cursor: pointer;
+            padding: 2px 6px;
+            font-family: inherit;
+            font-size: 11px;
+        }
+        .habit-action-btn:hover { color: #fff; border-color: #666; }
+        .habit-action-btn.danger:hover { color: var(--color-fail); border-color: var(--color-fail); }
+
+        .add-habit-row {
+            grid-column: 1 / -1;
+            padding: 12px;
+            text-align: center;
+            border: 1px dashed #444;
+            color: #888;
+            cursor: pointer;
+            background: transparent;
+            font-family: inherit;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        .add-habit-row:hover { color: var(--color-done); border-color: var(--color-done); }
+
+        /* --- GRID --- */
+        .tracker-grid {
+            display: grid;
+            grid-template-columns: 280px repeat(30, 1fr);
+            gap: 4px;
+            margin-bottom: 40px;
+            overflow-x: auto;
+        }
+
+        .day-header { text-align: center; font-size: 12px; color: var(--text-muted); padding-bottom: 5px; }
+        .day-header.today-header {
+            color: #fff;
+            font-weight: bold;
+            text-shadow: var(--glow);
+        }
+        .day-header.today-header::after {
+            content: 'TODAY';
+            display: block;
+            margin-top: 2px;
+            color: var(--color-done);
+            font-size: 9px;
+            letter-spacing: 0;
+        }
+        .habit-label {
+            display: flex; align-items: center; padding: 10px 15px;
+            background: #151515; border-left: 3px solid var(--accent-dim);
+            font-size: 13px; font-weight: bold; color: #ccc; text-transform: uppercase;
+        }
+        .check-cell {
+            background: #111; border: 1px solid #222; cursor: pointer;
+            transition: all 0.1s; position: relative;
+        }
+        .check-cell:hover { background: #222; }
+        .check-cell.today-cell {
+            border-color: rgba(255,255,255,0.35);
+            box-shadow: inset 0 0 0 1px rgba(0,255,65,0.35);
+        }
+        .check-cell.today-cell::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 50%;
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: var(--color-done);
+            transform: translateX(-50%);
+            box-shadow: var(--glow);
+        }
+        .check-cell.today-cell.active::after {
+            background: #000;
+            box-shadow: none;
+        }
+        .check-cell.active { background: var(--color-done); border-color: var(--color-done); }
+
+        /* --- SLEEP --- */
+        .sleep-section { border-top: 1px solid var(--border-color); padding-top: 20px; margin-bottom: 30px; }
+        .section-title { font-size: 18px; margin-bottom: 15px; color: #fff; display: flex; align-items: center; gap: 10px; border-left: 4px solid #fff; padding-left: 10px; }
+        .sleep-grid { display: grid; grid-template-columns: 280px repeat(30, 1fr); gap: 4px; }
+        .graph-container { grid-column: 2 / -1; height: 120px; background: #0a0a0a; border: 1px solid #222; margin-bottom: 5px; }
+        canvas { width: 100%; height: 100%; display: block; }
+        .sleep-input {
+            width: 100%; background: #111; border: 1px solid #333;
+            color: var(--text-muted); font-family: inherit; text-align: center;
+            font-size: 11px; padding: 5px 0;
+        }
+        .sleep-input:focus { border-color: var(--color-done); color: #fff; }
+        .sleep-input.today-sleep-input {
+            border-color: var(--color-done);
+            color: #fff;
+            box-shadow: inset 0 0 0 1px rgba(0,255,65,0.25);
+        }
+
+        /* --- JOURNAL (UPDATED) --- */
+        .log-section { border-top: 1px solid var(--border-color); padding-top: 20px; }
+        
+        .journal-container {
+            display: flex;
+            gap: 15px;
+            height: 350px;
+        }
+
+        .journal-sidebar {
+            width: 250px;
+            background: #080808;
+            border: 1px solid #333;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .journal-entry-item {
+            padding: 10px;
+            border-bottom: 1px solid #222;
+            cursor: pointer;
+            font-size: 12px;
+            color: #888;
+            transition: 0.2s;
+        }
+        .journal-entry-item:hover { background: #111; color: #fff; }
+        .journal-entry-item.active { background: #222; color: var(--color-done); border-left: 2px solid var(--color-done); }
+        .journal-date { font-weight: bold; margin-bottom: 3px; }
+        .journal-preview { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        .journal-main {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .log-area {
+            flex-grow: 1;
+            background-color: #080808; border: 1px solid #333;
+            color: #ddd; font-family: inherit; font-size: 14px; padding: 15px; resize: none; line-height: 1.5;
+        }
+        .log-area:focus { border-color: #555; }
+
+        .journal-controls {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        /* --- PLANNER --- */
+        .planner-section {
+            border-top: 1px solid var(--border-color);
+            padding-top: 20px;
+            margin-top: 30px;
+        }
+        .planner-container {
+            display: flex;
+            gap: 15px;
+            min-height: 350px;
+        }
+        .planner-sidebar {
+            width: 250px;
+            background: #080808;
+            border: 1px solid #333;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+        .plan-list-item {
+            padding: 10px;
+            border-bottom: 1px solid #222;
+            cursor: pointer;
+            font-size: 12px;
+            color: #888;
+            transition: 0.2s;
+        }
+        .plan-list-item:hover { background: #111; color: #fff; }
+        .plan-list-item.active {
+            background: #222;
+            color: var(--color-done);
+            border-left: 2px solid var(--color-done);
+        }
+        .plan-list-item.overdue { color: var(--color-fail); }
+        .plan-list-item.due-today { color: var(--color-warn); }
+        .plan-list-title { font-weight: bold; }
+        .plan-list-meta { font-size: 10px; color: #555; margin-top: 3px; }
+
+        .plan-new-btn {
+            padding: 10px; background: transparent;
+            border: none; border-top: 1px dashed #333;
+            color: var(--color-done); cursor: pointer;
+            font-family: inherit; font-size: 12px; font-weight: bold;
+            margin-top: auto;
+        }
+        .plan-new-btn:hover { background: #111; }
+
+        .planner-main {
+            flex-grow: 1; background: #080808; border: 1px solid #333;
+            padding: 15px; display: flex; flex-direction: column; gap: 10px;
+        }
+        .planner-empty {
+            color: #444; text-align: center; padding: 40px 20px;
+            font-size: 14px;
+        }
+        .plan-header {
+            display: flex; justify-content: space-between; align-items: center;
+            gap: 10px; border-bottom: 1px solid #222; padding-bottom: 10px;
+            flex-wrap: wrap;
+        }
+        .plan-title-input {
+            background: transparent; border: none; color: #fff;
+            font-size: 18px; font-weight: bold; font-family: inherit; flex-grow: 1; min-width: 200px;
+        }
+        .plan-title-input:focus { outline: 1px solid #333; }
+        .plan-meta {
+            font-size: 12px; color: var(--text-muted);
+            display: flex; gap: 15px; align-items: center;
+        }
+        .plan-meta input[type=date] {
+            background: #111; border: 1px solid #333; color: #ccc;
+            font-family: inherit; padding: 3px 6px;
+        }
+
+        .plan-items {
+            display: flex; flex-direction: column; gap: 4px; flex-grow: 1;
+        }
+        .plan-item {
+            display: flex; align-items: center; gap: 8px;
+            padding: 4px 6px; border: 1px solid transparent;
+        }
+        .plan-item:hover { background: #0a0a0a; border-color: #222; }
+        .plan-item-check {
+            width: 16px; height: 16px;
+            border: 1px solid #555; cursor: pointer;
+            flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+            font-size: 12px; line-height: 1;
+        }
+        .plan-item-check.done {
+            background: var(--color-done); color: #000; border-color: var(--color-done);
+        }
+        .plan-item-text {
+            flex-grow: 1; background: transparent; border: none;
+            color: #ddd; font-family: inherit; font-size: 14px;
+            padding: 2px 4px;
+        }
+        .plan-item-text:focus { outline: 1px solid #333; background: #0a0a0a; }
+        .plan-item.done .plan-item-text { color: var(--text-muted); text-decoration: line-through; }
+        .plan-item-delete {
+            background: transparent; border: none; color: #444;
+            cursor: pointer; font-size: 14px;
+        }
+        .plan-item-delete:hover { color: var(--color-fail); }
+        .plan-item-add {
+            color: #555; padding: 4px 6px; cursor: pointer; font-size: 13px;
+            display: inline-block;
+        }
+        .plan-item-add:hover { color: var(--color-done); }
+
+        .plan-actions {
+            display: flex; gap: 10px; justify-content: space-between;
+            border-top: 1px solid #222; padding-top: 10px; flex-wrap: wrap;
+        }
+
+        /* --- ARCHIVE --- */
+        .archive-section {
+            border-top: 1px solid var(--border-color);
+            padding-top: 15px; margin-top: 20px;
+        }
+        .archive-toggle {
+            background: transparent; border: none;
+            color: #888; font-family: inherit; font-size: 16px;
+            cursor: pointer; padding: 5px 0;
+            display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+        }
+        .archive-toggle:hover { color: #fff; }
+        .archive-list {
+            display: none; flex-direction: column; gap: 8px; margin-top: 15px;
+        }
+        .archive-section.open .archive-list { display: flex; }
+        .archived-plan {
+            border: 1px solid #222; padding: 10px; background: #080808;
+        }
+        .archived-plan-header {
+            display: flex; justify-content: space-between; align-items: center;
+            cursor: pointer; gap: 10px;
+        }
+        .archived-plan-title { color: var(--text-muted); font-weight: bold; }
+        .archived-plan-meta { color: #444; font-size: 11px; }
+        .archived-plan-items {
+            display: none; margin-top: 10px; padding-top: 10px;
+            border-top: 1px solid #222;
+        }
+        .archived-plan.open .archived-plan-items { display: block; }
+        .archived-plan-item {
+            padding: 3px 0; color: #888; font-size: 13px;
+        }
+        .archived-plan-item.done { text-decoration: line-through; color: #555; }
+        .archived-plan-actions {
+            display: flex; gap: 8px; margin-top: 10px;
+        }
+
+        /* --- TOAST --- */
+        .toast {
+            position: fixed; bottom: 20px; right: 20px;
+            background: #000; border: 1px solid var(--color-done);
+            color: var(--color-done); padding: 10px 20px;
+            font-family: inherit; box-shadow: var(--glow);
+            z-index: 200; opacity: 0; pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        .toast.visible { opacity: 1; }
+
+        /* --- RULES SECTION --- */
+        .rules-section {
+            border-top: 1px solid var(--border-color);
+            padding: 30px;
+            background: #0a0a0a;
+            margin-top: 30px;
+        }
+        
+        .rule-block {
+            margin-bottom: 25px;
+            padding-left: 20px;
+            border-left: 2px solid #333;
+        }
+        .rule-title { color: var(--color-done); font-weight: bold; margin-bottom: 10px; font-size: 16px; }
+        .rule-text { color: #aaa; font-size: 14px; line-height: 1.6; }
+        .rule-text strong { color: #fff; }
+        .rule-danger { color: var(--color-fail); }
+
+        /* --- MODAL --- */
+        .modal-overlay {
+            display: none;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); z-index: 500;
+            align-items: center; justify-content: center;
+        }
+        .modal-overlay.visible { display: flex; }
+        .modal-content {
+            background: var(--panel-color);
+            border: 1px solid var(--border-color);
+            padding: 25px; min-width: 320px; box-shadow: var(--glow);
+        }
+        .modal-input {
+            width: 100%; background: #111; border: 1px solid #333;
+            color: #fff; font-family: inherit; font-size: 14px; padding: 8px;
+        }
+        .modal-input:focus { border-color: var(--color-done); }
+        .color-picker { display: flex; gap: 6px; flex-wrap: wrap; }
+        .color-swatch {
+            width: 28px; height: 28px; cursor: pointer; border: 2px solid transparent;
+        }
+        .color-swatch.selected { border-color: #fff; }
+
+        .settings-content { min-width: 360px; max-width: 460px; }
+        .settings-section {
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .settings-section:last-of-type { border-bottom: none; }
+        .settings-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            letter-spacing: 0.15em;
+            margin-bottom: 10px;
+        }
+        .settings-options {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .settings-radio, .settings-check {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-main);
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .settings-radio input, .settings-check input {
+            accent-color: var(--accent-primary);
+            cursor: pointer;
+        }
+
+        /* --- FOOTER & BUTTONS --- */
+        footer { margin-top: 30px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #444; }
+
+        .btn { background: transparent; border: 1px solid #333; color: #555; padding: 8px 20px; cursor: pointer; font-family: inherit; font-weight: bold; transition: 0.2s; font-size: 12px;}
+        .btn:hover { border-color: #666; color: #ccc; }
+        .btn-primary { border-color: var(--color-done); color: var(--color-done); }
+        .btn-primary:hover { background: var(--color-done); color: #000; }
+        
+        .btn-reset:hover { border-color: var(--color-fail); color: var(--color-fail); }
+        .btn-sos { border-color: var(--color-fail); color: var(--color-fail); animation: pulse 2s infinite; }
+        .btn-sos:hover { background: var(--color-fail); color: #000; box-shadow: var(--glow-red); }
+
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+
+        #panic-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95); z-index: 999; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+        }
+        .panic-content { border: 2px solid var(--color-fail); padding: 40px; max-width: 600px; box-shadow: var(--glow-red); background: #000; }
+        .panic-steps li { list-style: none; margin: 15px 0; font-size: 20px; color: #fff; }
+        .close-panic { margin-top: 20px; background: var(--color-fail); color: black; border: none; padding: 10px 30px; font-size: 18px; cursor: pointer; font-weight: bold; }
+
+        /* --- PREMIUM DARK THEME --- */
+        body.theme-premium {
+            background-image:
+                linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+
+        body.theme-premium .main-container {
+            background: transparent;
+            border: none;
+            box-shadow: none;
+        }
+
+        body.theme-premium .corner { display: none; }
+
+        body.theme-premium .nav-bar {
+            background: rgba(10, 10, 10, 0.7);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        body.theme-premium #tracker,
+        body.theme-premium .planner-section,
+        body.theme-premium .archive-section,
+        body.theme-premium .sleep-section,
+        body.theme-premium .log-section,
+        body.theme-premium .rules-section {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        body.theme-premium .tracker-grid {
+            padding: 0;
+            background: transparent;
+        }
+
+        body.theme-premium .habit-label {
+            background: rgba(255,255,255,0.02);
+            border-left-width: 3px;
+            border-radius: 4px;
+        }
+
+        body.theme-premium .check-cell {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.04);
+            border-radius: 3px;
+        }
+        body.theme-premium .check-cell:hover {
+            background: rgba(255,255,255,0.06);
+        }
+        body.theme-premium .check-cell.active {
+            background: var(--accent-primary);
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 12px rgba(255,79,0,0.5);
+        }
+
+        body.theme-premium .btn {
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+        body.theme-premium .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        }
+        body.theme-premium .btn-primary {
+            background: var(--accent-primary);
+            color: #000;
+            border-color: var(--accent-primary);
+        }
+        body.theme-premium .btn-primary:hover {
+            background: #ff6a20;
+            box-shadow: 0 0 24px rgba(255,79,0,0.4);
+        }
+
+        body.theme-premium h1.hero-title .text-outline-layer {
+            -webkit-text-stroke: 2px var(--accent-primary);
+            color: transparent;
+        }
+        body.theme-premium h1.hero-title .text-fill-layer {
+            background: linear-gradient(to top, var(--accent-primary) 50%, transparent 50%);
+            background-size: 100% 200%;
+            background-position: 0% 100%;
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            transition: background-position 1.5s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+        body.theme-premium h1.hero-title.animate-fill .text-fill-layer {
+            background-position: 0% 0%;
+        }
+
+        body.theme-premium .progress-fill,
+        body.theme-premium .hero-progress-fill {
+            background: var(--accent-primary);
+            box-shadow: 0 0 12px rgba(255,79,0,0.4);
+        }
+
+        body.theme-premium .day-header.today-header::after {
+            color: var(--accent-primary);
+            text-shadow: 0 0 8px rgba(255,79,0,0.6);
+        }
+
+        body.theme-premium .section-title {
+            font-family: var(--font-ui);
+            font-weight: 700;
+            border-left-color: var(--accent-primary);
+        }
+
+        /* --- SPOTLIGHT --- */
+        .spotlight-beam {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9999;
+            display: none;
+            transform: translate3d(var(--mouse-x, -100px), var(--mouse-y, -100px), 0) translate(-50%, -50%);
+            transition: width 0.2s ease, height 0.2s ease, background 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+            will-change: transform, width, height;
+        }
+        body.theme-premium #spotlight {
+            display: block;
+            background: transparent;
+            border: 1.5px solid #FF4F00;
+            box-shadow: 0 0 8px rgba(255, 79, 0, 0.5);
+        }
+        body.theme-premium:has(button:not(:disabled):hover, a:hover, .skin-option:hover, .nav-link:hover, .nav-icon-btn:hover, .btn:hover, [onclick]:hover, input[type="checkbox"]:hover, label:hover, .plan-item:hover, .archive-item:hover, .journal-entry-item:hover, .check-cell:hover, .add-habit-row:hover) #spotlight {
+            width: 56px;
+            height: 56px;
+            border-width: 2px;
+            background: rgba(255, 79, 0, 0.35);
+            box-shadow: 0 0 22px rgba(255, 79, 0, 0.6);
+        }
+        body.theme-protocol30 #spotlight {
+            display: block;
+            width: 12px;
+            height: 12px;
+            background: transparent;
+            border: 1.5px solid #00ff41;
+            box-shadow: 0 0 5px rgba(0, 255, 65, 0.5);
+        }
+        body.theme-protocol30:has(button:not(:disabled):hover, a:hover, .skin-option:hover, .nav-link:hover, .nav-icon-btn:hover, .btn:hover, [onclick]:hover, input[type="checkbox"]:hover, label:hover, .plan-item:hover, .archive-item:hover, .journal-entry-item:hover, .check-cell:hover, .add-habit-row:hover) #spotlight {
+            width: 36px;
+            height: 36px;
+            border-width: 2px;
+            background: rgba(0, 255, 65, 0.35);
+            box-shadow: 0 0 16px rgba(0, 255, 65, 0.7);
+        }
+        body.spotlight-off #spotlight { display: none !important; }
+
+        /* --- REVEAL --- */
+        body.theme-premium .reveal-target {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+        body.theme-premium .reveal-target.revealed {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        body.theme-protocol30 .reveal-target,
+        body.reveal-off .reveal-target {
+            opacity: 1 !important;
+            transform: none !important;
+            transition: none !important;
+        }
+
+    /* --- MOBILE DAY CARD --- */
+    .day-card-view { display: none; }
+
+    @media (max-width: 768px) {
+        .tracker-grid { display: none !important; }
+        .day-card-view {
+            display: block;
+            background: var(--panel-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        body.theme-premium .day-card-view {
+            background: rgba(255,255,255,0.03);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 16px;
+        }
+    }
+
+    .day-card-nav {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 15px;
+    }
+    .day-card-prev, .day-card-next {
+        background: transparent;
+        border: 1px solid var(--border-color);
+        color: var(--text-main);
+        width: 44px;
+        height: 44px;
+        border-radius: var(--radius);
+        cursor: pointer;
+        font-size: 18px;
+        font-family: inherit;
+    }
+    .day-card-prev:hover, .day-card-next:hover {
+        background: var(--panel-color);
+        border-color: var(--accent-primary);
+    }
+    .day-card-label {
+        text-align: center;
+        flex: 1;
+    }
+    .day-card-day {
+        font-family: var(--font-mono);
+        font-size: 16px;
+        color: var(--text-main);
+        font-weight: bold;
+    }
+    .day-card-date {
+        font-size: 12px;
+        color: var(--text-muted);
+        margin-top: 4px;
+    }
+    .day-card-view.is-today {
+        border-color: var(--accent-primary);
+        box-shadow: var(--glow);
+    }
+    .day-card-habits {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    .day-card-habit {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 14px 12px;
+        background: rgba(255,255,255,0.02);
+        border: 1px solid var(--border-color);
+        border-left: 3px solid var(--accent-dim);
+        border-radius: var(--radius);
+        color: var(--text-main);
+        font-family: inherit;
+        font-size: 14px;
+        text-align: left;
+        cursor: pointer;
+        width: 100%;
+        transition: 0.15s;
+    }
+    .day-card-habit.done {
+        background: rgba(0,255,65,0.05);
+        border-left-color: var(--accent-primary);
+    }
+    body.theme-premium .day-card-habit.done {
+        background: rgba(255,79,0,0.08);
+    }
+    .day-card-habit:active { transform: scale(0.98); }
+    .day-card-habit-check {
+        width: 24px;
+        height: 24px;
+        border: 1px solid var(--text-muted);
+        border-radius: var(--radius);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        flex-shrink: 0;
+    }
+    .day-card-habit.done .day-card-habit-check {
+        background: var(--accent-primary);
+        color: #000;
+        border-color: var(--accent-primary);
+    }
+    .day-card-streak {
+        text-align: center;
+        margin-top: 20px;
+        padding-top: 15px;
+        border-top: 1px solid var(--border-color);
+        color: var(--accent-primary);
+        font-weight: bold;
+        font-family: var(--font-mono);
+        font-size: 14px;
+    }
+    .day-card-streak:empty { display: none; }
+
+    /* Mobile-wide responsive adjustments */
+    @media (max-width: 768px) {
+        .hero { padding: 40px 0 30px; }
+        .hero-title { font-size: clamp(40px, 14vw, 80px); }
+        .hero-meta { font-size: 14px; gap: 12px; flex-wrap: wrap; }
+        .header-right { align-items: stretch; }
+        header { flex-direction: column; gap: 15px; align-items: stretch; }
+
+        .planner-container, .journal-container { flex-direction: column; }
+        .planner-sidebar, .journal-sidebar {
+            width: 100%;
+            max-height: 200px;
+        }
+        .sleep-grid { grid-template-columns: 1fr; }
+        .graph-container { grid-column: 1; }
+        #sleep-inputs {
+            grid-column: 1;
+            overflow-x: auto;
+        }
+
+        .nav-bar {
+            overflow-x: auto;
+            gap: 10px;
+            padding: 8px 10px;
+        }
+        .nav-link { white-space: nowrap; font-size: 12px; padding: 4px 6px; }
+        .nav-spacer { display: none; }
+
+        body { padding: 60px 12px 20px 12px; }
+        .main-container { padding: 12px; }
+
+        .skin-dropdown { right: 10px; min-width: 180px; }
+    }
+
+
+        /* --- CONFETTI --- */
+        .confetti-canvas {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 300;
+            display: none;
+        }
+        .confetti-canvas.active { display: block; }
+    </style>
+</head>
+<body>
+<script>
+    (function() {
+        var t = localStorage.getItem('theme') || 'protocol30';
+        document.body.className = 'theme-' + t;
+        if (localStorage.getItem('spotlightEnabled') === 'false') document.body.classList.add('spotlight-off');
+        if (localStorage.getItem('revealEnabled') === 'false') document.body.classList.add('reveal-off');
+    })();
+</script>
+
+    <!-- NAV BAR -->
+    <nav class="nav-bar">
+        <a href="#top" class="nav-link">ГЛАВНАЯ</a>
+        <a href="#tracker" class="nav-link">ТРЕКЕР</a>
+        <a href="#planner" class="nav-link">ПЛАНЫ<span id="plan-count" class="nav-count"></span></a>
+        <a href="#sleep" class="nav-link">СОН</a>
+        <a href="#journal" class="nav-link">ЖУРНАЛ</a>
+        <a href="#rules" class="nav-link">ПРАВИЛА</a>
+        <span class="nav-spacer"></span>
+        <button class="nav-icon-btn" id="skin-toggle-btn" onclick="toggleSkinDropdown()" title="Theme">🎨</button>
+        <button class="nav-icon-btn" onclick="openSettings()" title="Settings">⚙</button>
+        <div id="skin-dropdown" class="skin-dropdown">
+            <button class="skin-option" data-theme="protocol30" onclick="setTheme('protocol30')">
+                <span class="skin-dot"></span> PROTOCOL 30
+            </button>
+            <button class="skin-option" data-theme="premium" onclick="setTheme('premium')">
+                <span class="skin-dot"></span> PREMIUM DARK
+            </button>
+        </div>
+    </nav>
+
+    <section class="hero reveal-target">
+        <div class="hero-quote" id="hero-quote">"The relentless pursuit of pleasure and avoidance of pain leads to pain."</div>
+        <h1 class="hero-title">
+            <span class="text-fill-layer">PROTOCOL 30</span>
+            <span class="text-outline-layer">PROTOCOL 30</span>
+        </h1>
+        <div class="hero-meta">
+            <span class="hero-day">DAY <span id="hero-current-day">—</span> / 30</span>
+            <span class="hero-streak" id="hero-streak"></span>
+        </div>
+        <div class="hero-progress">
+            <div class="hero-progress-fill" id="hero-progress-fill"></div>
+        </div>
+    </section>
+
+    <div class="main-container" id="top">
+        <div class="corner tl"></div><div class="corner tr"></div>
+        <div class="corner bl"></div><div class="corner br"></div>
+
+        <header>
+            <div>
+                <div class="header-subtitle">// WAR ROOM</div>
+                <div class="progress-container">
+                    <div class="progress-fill" id="overall-progress"></div>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="stats-panel">
+                    <div>ВЫПОЛНЕНО: <span id="done-count" class="highlight">0</span> / <span id="total-count">0</span></div>
+                    <div>STATUS: <span style="color:var(--color-done)">ACTIVE</span></div>
+                </div>
+                <button id="edit-toggle" class="btn" onclick="toggleEditMode()">⚙ EDIT</button>
+            </div>
+        </header>
+
+        <!-- GRID -->
+        <div id="tracker" class="tracker-grid reveal-target"></div>
+        <div id="tracker-mobile" class="day-card-view">
+            <div class="day-card-nav">
+                <button class="day-card-prev" onclick="changeDayCard(-1)">←</button>
+                <div class="day-card-label">
+                    <div class="day-card-day">DAY <span id="dc-day">—</span> / 30</div>
+                    <div class="day-card-date" id="dc-date">—</div>
+                </div>
+                <button class="day-card-next" onclick="changeDayCard(1)">→</button>
+            </div>
+            <div class="day-card-habits" id="dc-habits"></div>
+            <div class="day-card-streak" id="dc-streak"></div>
+        </div>
+
+        <!-- PLANNER -->
+        <div id="planner" class="planner-section reveal-target">
+            <div class="section-title">🎯 ПЛАНИРОВЩИК</div>
+            <div class="planner-container">
+                <div class="planner-sidebar" id="planner-sidebar">
+                    <!-- список планов, инжектится JS -->
+                </div>
+                <div class="planner-main" id="planner-main">
+                    <!-- активный план или приглашение -->
+                </div>
+            </div>
+        </div>
+
+        <!-- ARCHIVE -->
+        <div id="archive" class="archive-section reveal-target">
+            <button class="archive-toggle" onclick="toggleArchive()">
+                <span id="archive-toggle-text">🏆 ВЫПОЛНЕННЫЕ ПЛАНЫ (0)</span>
+                <span id="archive-chevron">▼</span>
+            </button>
+            <div class="archive-list" id="archive-list"></div>
+        </div>
+
+        <!-- SLEEP -->
+        <div id="sleep" class="sleep-section reveal-target">
+            <div class="section-title">📉 ГРАФИК СНА (Цель: 8ч)</div>
+            <div class="sleep-grid">
+                <div class="graph-container">
+                    <canvas id="sleepCanvas"></canvas>
+                </div>
+                <div style="grid-column: 2/-1; display:flex;" id="sleep-inputs"></div>
+            </div>
+        </div>
+
+        <!-- JOURNAL -->
+        <div id="journal" class="log-section reveal-target">
+            <div class="section-title">📝 ТАКТИЧЕСКИЙ ЖУРНАЛ</div>
+
+            <div class="journal-container">
+                <!-- Sidebar List -->
+                <div class="journal-sidebar" id="journal-list">
+                    <!-- Записи будут тут -->
+                    <div style="padding:10px; color:#444; text-align:center;">Нет записей</div>
+                </div>
+
+                <!-- Main Edit Area -->
+                <div class="journal-main">
+                    <textarea id="daily-log" class="log-area" placeholder="Опиши состояние. Анализируй срывы. Фиксируй победы..."></textarea>
+                    <div class="journal-controls">
+                        <button class="btn" onclick="newEntry()">+ НОВАЯ ЗАПИСЬ</button>
+                        <button class="btn btn-primary" onclick="saveEntry()">СОХРАНИТЬ В АРХИВ</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RULES SECTION -->
+        <div id="rules" class="rules-section reveal-target">
+            <h2 style="color:#fff; margin-bottom: 20px; font-size:24px;">⛔ КОДЕКС ПОВЕДЕНИЯ</h2>
+
+            <div class="rule-block">
+                <div class="rule-title">✅ ПРАВИЛО №1: ПИТАНИЕ</div>
+                <div class="rule-text">
+                    ЕДА = ТОЛЬКО СТОЯ ИЛИ ЗА СТОЛОМ <strong>БЕЗ ЭКРАНОВ</strong><br>
+                    Если ты смотришь — ты не ешь.<br>
+                    Если ешь — ты ешь.
+                </div>
+            </div>
+
+            <div class="rule-block">
+                <div class="rule-title">✅ ПРАВИЛО №2: ГОЛОД ИЛИ СКУКА?</div>
+                <div class="rule-text">
+                    Хочешь жрать без голода?<br>
+                    → пей воду<br>
+                    → жди 10 минут<br>
+                    → если всё ещё хочешь — ешь
+                </div>
+            </div>
+
+            <div class="rule-block">
+                <div class="rule-title">✅ ПРАВИЛО №3: ОДНО БЛЮДО</div>
+                <div class="rule-text">
+                    Ешь одно блюдо — доел → <strong>СТОП</strong><br>
+                    Если хочешь добрать:<br>
+                    – через 10 мин<br>
+                    – не сразу
+                </div>
+            </div>
+
+            <div class="rule-block" style="border-left-color: var(--color-fail);">
+                <div class="rule-title rule-danger">🚭 КУРЕНИЕ: ZERO TOLERANCE</div>
+                <div class="rule-text">
+                    Ты бросаешь не сигареты.<br>
+                    Ты бросаешь <strong>слабую версию себя</strong>.
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <button class="btn btn-reset" onclick="resetData()">СБРОС ПРОГРЕССА</button>
+            <button class="btn" onclick="exportPNG()">📸 SHARE</button>
+            <button class="btn btn-sos" onclick="togglePanic(true)">[🆘 SOS / СРЫВ]</button>
+        </footer>
+    </div>
+
+    <!-- PANIC MODAL -->
+    <div id="panic-overlay">
+        <div class="panic-content">
+            <h1 style="color: var(--color-fail); font-size: 40px;">⚠️ STOP</h1>
+            <p style="color: #666; margin-bottom: 20px;">ПРОТОКОЛ ЧРЕЗВЫЧАЙНОЙ СИТУАЦИИ</p>
+            <ul class="panic-steps">
+                <li>1. УБЕРИ РУКИ ОТ ТЕЛЕФОНА</li>
+                <li>2. СДЕЛАЙ 5 ГЛУБОКИХ ВДОХОВ</li>
+                <li>3. ВЫПЕЙ СТАКАН ВОДЫ (МЕДЛЕННО)</li>
+                <li>4. УПАЛ - ОТЖАЛСЯ (МАКСИМУМ РАЗ)</li>
+                <li>5. ВСПОМНИ: БОЛЬ — ЭТО РОСТ</li>
+            </ul>
+            <button class="close-panic" onclick="togglePanic(false)">Я В ПОРЯДКЕ, ПРОДОЛЖАЕМ</button>
+        </div>
+    </div>
+
+    <div id="habit-modal-overlay" class="modal-overlay">
+        <div class="modal-content">
+            <h3 style="color:#fff; margin-bottom:15px;">НОВАЯ ПРИВЫЧКА</h3>
+            <input type="text" id="habit-modal-name" placeholder="Название (с эмодзи)" class="modal-input" />
+            <div style="color:#888; font-size:12px; margin: 10px 0 5px 0;">Цвет:</div>
+            <div id="habit-modal-colors" class="color-picker"></div>
+            <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:15px;">
+                <button class="btn" onclick="closeHabitModal()">ОТМЕНА</button>
+                <button class="btn btn-primary" onclick="confirmAddHabit()">ДОБАВИТЬ</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="settings-modal" class="modal-overlay">
+        <div class="modal-content settings-content">
+            <h3 style="color:#fff; margin-bottom:20px;">⚙ SETTINGS</h3>
+
+            <div class="settings-section">
+                <div class="settings-label">🎨 SKIN</div>
+                <div class="settings-options">
+                    <label class="settings-radio">
+                        <input type="radio" name="settings-theme" value="protocol30" onchange="setTheme('protocol30')">
+                        <span>PROTOCOL 30</span>
+                    </label>
+                    <label class="settings-radio">
+                        <input type="radio" name="settings-theme" value="premium" onchange="setTheme('premium')">
+                        <span>Premium Dark</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <div class="settings-label">✨ EFFECTS</div>
+                <div class="settings-options">
+                    <label class="settings-check">
+                        <input type="checkbox" id="opt-spotlight" onchange="setEffect('spotlight', this.checked)">
+                        <span>Cursor spotlight</span>
+                    </label>
+                    <label class="settings-check">
+                        <input type="checkbox" id="opt-reveal" onchange="setEffect('reveal', this.checked)">
+                        <span>Reveal animations</span>
+                    </label>
+                    <label class="settings-check">
+                        <input type="checkbox" id="opt-confetti" onchange="setEffect('confetti', this.checked)">
+                        <span>Confetti at 100%</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <div class="settings-label">🌐 LANGUAGE</div>
+                <div class="settings-options">
+                    <label class="settings-radio">
+                        <input type="radio" name="settings-lang" value="ru" checked>
+                        <span>Русский</span>
+                    </label>
+                    <label class="settings-radio" style="opacity:0.5; cursor:not-allowed;">
+                        <input type="radio" name="settings-lang" value="en" disabled>
+                        <span>English (coming soon)</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <button class="btn btn-reset" onclick="resetData()">🗑 ОЧИСТИТЬ ВСЕ ДАННЫЕ</button>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; margin-top:15px;">
+                <button class="btn" onclick="closeSettings()">ЗАКРЫТЬ</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="spotlight" class="spotlight-beam"></div>
+    <canvas id="confetti-canvas" class="confetti-canvas"></canvas>
+    <div id="toast" class="toast"></div>
+
+<script>
+    // === STATE ===
+    const TOTAL_DAYS = 30;
+
+    const DEFAULT_HABITS = [
+        { id: 'h1', name: '🚿 Холодный душ', color: '#3498db' },
+        { id: 'h2', name: '🚗 ПДД (30+ мин)', color: '#f1c40f' },
+        { id: 'h3', name: '💪 Тренировка / Активность', color: '#e74c3c' },
+        { id: 'h4', name: '🍽 Режим еды (без экрана)', color: '#2ecc71' },
+        { id: 'h5', name: '❌ NO FAP / NO PORN', color: '#9b59b6' },
+        { id: 'h6', name: '🚫 NO CIGARETTES', color: '#95a5a6' },
+        { id: 'h7', name: '📖 Чтение (20+ мин)', color: '#1abc9c' },
+        { id: 'h8', name: '💤 Сон до 23:30', color: '#34495e' }
+    ];
+
+    const HABIT_COLORS = ['#3498db','#f1c40f','#e74c3c','#2ecc71','#9b59b6','#95a5a6','#1abc9c','#34495e'];
+
+    let appData = {
+        habits: {},
+        sleep: new Array(TOTAL_DAYS).fill(''),
+        journal: [],
+        habitDefs: [],
+        plans: []
+    };
+
+    let editMode = false;
+    let selectedPlanId = null;
+
+    function getCurrentTrackerDay(date = new Date()) {
+        const day = date.getDate();
+        return day >= 1 && day <= TOTAL_DAYS ? day : null;
+    }
+
+    // === HERO ===
+    function updateHero() {
+        const today = getCurrentTrackerDay() || 0;
+        const dayEl = document.getElementById('hero-current-day');
+        if (dayEl) dayEl.textContent = today || '—';
+        const fill = document.getElementById('hero-progress-fill');
+        if (fill) fill.style.width = (today / TOTAL_DAYS * 100) + '%';
+
+        const streak = calculateStreak();
+        const streakEl = document.getElementById('hero-streak');
+        if (streakEl) {
+            if (streak >= 2) {
+                streakEl.textContent = '🔥 ' + streak + ' дней';
+                streakEl.classList.add('visible');
+            } else {
+                streakEl.classList.remove('visible');
+            }
+        }
+    }
+
+    function calculateStreak() {
+        if (!appData.habitDefs.length) return 0;
+        const today = getCurrentTrackerDay() || TOTAL_DAYS;
+        let streak = 0;
+        for (let d = today; d >= 1; d--) {
+            const allDone = appData.habitDefs.every(function(h) { return appData.habits[h.id + '_' + d]; });
+            if (allDone) {
+                streak++;
+            } else if (d === today) {
+                continue;
+            } else {
+                break;
+            }
+        }
+        return streak;
+    }
+
+    function triggerHeroFillAnim() {
+        const title = document.querySelector('.hero-title');
+        if (!title) return;
+        if (document.body.classList.contains('theme-premium')) {
+            title.classList.remove('animate-fill');
+            setTimeout(function() { title.classList.add('animate-fill'); }, 100);
+        } else {
+            title.classList.remove('animate-fill');
+        }
+    }
+
+    // === STORAGE ===
+    function loadData() {
+        const saved = localStorage.getItem('hardmode_v4');
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            appData.habits = parsed.habits || {};
+            appData.sleep = parsed.sleep || new Array(TOTAL_DAYS).fill('');
+            appData.journal = parsed.journal || [];
+            appData.habitDefs = (parsed.habitDefs && parsed.habitDefs.length)
+                ? parsed.habitDefs.map((h, i) => ({ order: i, ...h }))
+                : DEFAULT_HABITS.map((h, i) => ({ ...h, order: i }));
+            appData.plans = parsed.plans || [];
+        } else {
+            appData.habitDefs = DEFAULT_HABITS.map((h, i) => ({ ...h, order: i }));
+            appData.plans = [];
+        }
+    }
+
+    function saveData() {
+        localStorage.setItem('hardmode_v4', JSON.stringify(appData));
+        updateHero();
+        if (typeof renderDayCard === 'function') renderDayCard();
+        updateStats();
+        drawSleepGraph();
+        renderJournalList();
+        if (typeof renderPlanner === 'function') renderPlanner();
+        if (typeof renderArchive === 'function') renderArchive();
+        if (typeof updateNavCounter === 'function') updateNavCounter();
+    }
+
+    // --- RENDERERS ---
+    const grid = document.querySelector('.tracker-grid');
+    const sleepInputs = document.getElementById('sleep-inputs');
+
+    // === SPOTLIGHT ===
+    let _spotlightRAF = null;
+    function initSpotlight() {
+        const spot = document.getElementById('spotlight');
+        document.addEventListener('mousemove', function(e) {
+            if (_spotlightRAF) cancelAnimationFrame(_spotlightRAF);
+            _spotlightRAF = requestAnimationFrame(function() {
+                if (spot) spot.style.setProperty('--mouse-x', e.clientX + 'px');
+                if (spot) spot.style.setProperty('--mouse-y', e.clientY + 'px');
+            });
+        }, { passive: true });
+    }
+
+    // === REVEAL ===
+    function initReveal() {
+        if (!('IntersectionObserver' in window)) return;
+        const observer = new IntersectionObserver(function(entries) {
+            entries.forEach(function(e) {
+                if (e.isIntersecting) {
+                    e.target.classList.add('revealed');
+                    observer.unobserve(e.target);
+                }
+            });
+        }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+        document.querySelectorAll('.reveal-target').forEach(function(el) {
+            observer.observe(el);
+        });
+    }
+
+    // === SHARE PNG ===
+    function exportPNG() {
+        const W = 1080;
+        const H = 1920;
+        const canvas = document.createElement('canvas');
+        canvas.width = W;
+        canvas.height = H;
+        const ctx = canvas.getContext('2d');
+
+        const theme = localStorage.getItem('theme') || 'protocol30';
+        const bg = theme === 'premium' ? '#0a0a0a' : '#050505';
+        const accent = theme === 'premium' ? '#FF4F00' : '#00ff41';
+        const text = '#e0e0e0';
+        const muted = '#666';
+
+        ctx.fillStyle = bg;
+        ctx.fillRect(0, 0, W, H);
+
+        ctx.fillStyle = text;
+        ctx.font = 'bold 96px Consolas, monospace';
+        ctx.textAlign = 'left';
+        ctx.fillText('PROTOCOL 30', 60, 200);
+
+        const today = getCurrentTrackerDay() || 0;
+        ctx.fillStyle = muted;
+        ctx.font = '40px Consolas, monospace';
+        ctx.fillText('DAY ' + today + ' / 30', 60, 260);
+
+        const streak = calculateStreak();
+        if (streak >= 2) {
+            ctx.fillStyle = accent;
+            ctx.font = 'bold 36px Consolas, monospace';
+            ctx.fillText('🔥 ' + streak + ' дней', 60, 320);
+        }
+
+        const startX = 60;
+        const startY = 400;
+        const cellSize = 28;
+        const cellGap = 4;
+        const labelW = 280;
+
+        ctx.font = '20px Consolas, monospace';
+        ctx.textAlign = 'left';
+
+        appData.habitDefs.forEach(function(h, i) {
+            const y = startY + i * (cellSize + cellGap + 8);
+            ctx.fillStyle = text;
+            const name = h.name.length > 22 ? h.name.slice(0, 22) + '...' : h.name;
+            ctx.fillText(name, startX, y + cellSize - 6);
+
+            for (let d = 1; d <= TOTAL_DAYS; d++) {
+                const x = startX + labelW + (d - 1) * (cellSize + cellGap);
+                const done = !!appData.habits[h.id + '_' + d];
+                ctx.fillStyle = done ? accent : '#222';
+                ctx.fillRect(x, y, cellSize, cellSize);
+            }
+        });
+
+        const now = new Date();
+        const dateStr = now.getDate() + '.' + (now.getMonth() + 1) + '.' + now.getFullYear();
+        ctx.fillStyle = muted;
+        ctx.font = '24px Consolas, monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('protocol30 // ' + dateStr, W / 2, H - 80);
+
+        canvas.toBlob(function(blob) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'protocol30-' + now.getFullYear() + '-' + (now.getMonth() + 1) + '.png';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            if (typeof showToast === 'function') {
+                showToast('>> SAVED TO DOWNLOADS');
+            }
+        });
+    }
+
+    // === CONFETTI ===
+    const CONFETTI_COLORS = ['#00ff41','#FF4F00','#f1c40f','#3498db','#e74c3c','#9b59b6','#fff'];
+
+    function fireConfetti() {
+        if (localStorage.getItem('confettiEnabled') === 'false') return;
+        const canvas = document.getElementById('confetti-canvas');
+        if (!canvas) return;
+        canvas.classList.add('active');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        const ctx = canvas.getContext('2d');
+
+        const N = 80;
+        const particles = [];
+        for (let i = 0; i < N; i++) {
+            particles.push({
+                x: window.innerWidth / 2 + (Math.random() - 0.5) * 100,
+                y: window.innerHeight / 2,
+                vx: (Math.random() - 0.5) * 12,
+                vy: -Math.random() * 14 - 4,
+                g: 0.35,
+                size: Math.random() * 6 + 4,
+                color: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
+                rot: Math.random() * Math.PI * 2,
+                vr: (Math.random() - 0.5) * 0.3,
+                life: 0
+            });
+        }
+
+        let start = performance.now();
+        function step(now) {
+            const elapsed = now - start;
+            if (elapsed > 2500) {
+                canvas.classList.remove('active');
+                return;
+            }
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(function(p) {
+                p.vy += p.g;
+                p.x += p.vx;
+                p.y += p.vy;
+                p.rot += p.vr;
+                p.life = elapsed / 2500;
+                ctx.save();
+                ctx.translate(p.x, p.y);
+                ctx.rotate(p.rot);
+                ctx.globalAlpha = 1 - p.life;
+                ctx.fillStyle = p.color;
+                ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
+                ctx.restore();
+            });
+            requestAnimationFrame(step);
+        }
+        requestAnimationFrame(step);
+    }
+
+    function checkDayComplete(habitKey) {
+        const m = habitKey.match(/^.+_(\d+)$/);
+        if (!m) return;
+        const day = parseInt(m[1], 10);
+        const today = getCurrentTrackerDay();
+        if (day !== today) return;
+        const allDone = appData.habitDefs.length > 0 &&
+                        appData.habitDefs.every(function(h) { return appData.habits[h.id + '_' + day]; });
+        if (!allDone) return;
+        const now = new Date();
+        const flagKey = 'confettiShown_' + day + '_' + now.getMonth() + '_' + now.getFullYear();
+        if (localStorage.getItem(flagKey)) return;
+        localStorage.setItem(flagKey, '1');
+        fireConfetti();
+        if (typeof showToast === 'function') {
+            showToast('>> DAY COMPLETE 🔥');
+        }
+    }
+
+    // === INIT ===
+    function init() {
+        loadData();
+        applyInitialTheme();
+        applyEffectsOnLoad();
+        renderGrid();
+        renderDayCard();
+        initDayCardSwipe();
+        renderSleepInputs();
+        renderJournalList();
+        renderPlanner();
+        renderArchive();
+        updateNavCounter();
+        updateHero();
+        triggerHeroFillAnim();
+        initSpotlight();
+        initReveal();
+        updateStats();
+        drawSleepGraph();
+        window.addEventListener('resize', drawSleepGraph);
+    }
+
+    function renderGrid() {
+        grid.innerHTML = '';
+        grid.classList.toggle('editing', editMode);
+        const todayDay = getCurrentTrackerDay();
+        const emptyCorner = document.createElement('div');
+        grid.appendChild(emptyCorner);
+
+        for (let i = 1; i <= TOTAL_DAYS; i++) {
+            const d = document.createElement('div');
+            d.className = 'day-header';
+            if (i === todayDay) d.classList.add('today-header');
+            d.textContent = i;
+            grid.appendChild(d);
+        }
+
+        appData.habitDefs.forEach(habit => {
+            const label = document.createElement('div');
+            label.className = 'habit-label';
+            label.style.borderLeftColor = habit.color;
+            const text = document.createElement('span');
+            text.textContent = habit.name;
+            text.className = 'habit-name';
+            label.appendChild(text);
+            if (editMode) {
+                const actions = document.createElement('span');
+                actions.className = 'habit-actions';
+                actions.innerHTML = `
+                <button class="habit-action-btn" onclick="renameHabit('${habit.id}')">✎</button>
+                <button class="habit-action-btn danger" onclick="deleteHabit('${habit.id}')">🗑</button>
+            `;
+                label.appendChild(actions);
+            }
+            grid.appendChild(label);
+
+            for (let d = 1; d <= TOTAL_DAYS; d++) {
+                const key = `${habit.id}_${d}`;
+                const cell = document.createElement('div');
+                cell.className = 'check-cell';
+                if (d === todayDay) cell.classList.add('today-cell');
+                if (appData.habits[key]) cell.classList.add('active');
+                cell.onclick = () => toggleHabit(key, cell);
+                grid.appendChild(cell);
+            }
+        });
+
+        if (editMode) {
+            const addRow = document.createElement('button');
+            addRow.className = 'add-habit-row';
+            addRow.textContent = '+ НОВАЯ ПРИВЫЧКА';
+            addRow.onclick = addHabit;
+            grid.appendChild(addRow);
+        }
+    }
+
+    function renderSleepInputs() {
+        sleepInputs.innerHTML = '';
+        const todayDay = getCurrentTrackerDay();
+        for (let i = 0; i < TOTAL_DAYS; i++) {
+            const input = document.createElement('input');
+            input.type = 'number';
+            input.className = 'sleep-input';
+            if (i + 1 === todayDay) input.classList.add('today-sleep-input');
+            input.placeholder = '-';
+            input.value = appData.sleep[i];
+            input.oninput = (e) => {
+                appData.sleep[i] = e.target.value;
+                saveData();
+            };
+            sleepInputs.appendChild(input);
+        }
+    }
+
+    // --- JOURNAL LOGIC ---
+    const logArea = document.getElementById('daily-log');
+    const journalList = document.getElementById('journal-list');
+
+    function saveEntry() {
+        const text = logArea.value.trim();
+        if(!text) return alert("Пустая запись");
+
+        const newEntry = {
+            id: Date.now(),
+            date: new Date().toLocaleString('ru-RU', { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' }),
+            text: text
+        };
+
+        appData.journal.unshift(newEntry); // Add to top
+        saveData();
+        logArea.value = ''; // Clear
+    }
+
+    function newEntry() {
+        logArea.value = '';
+    }
+
+    function renderJournalList() {
+        journalList.innerHTML = '';
+        if(appData.journal.length === 0) {
+            journalList.innerHTML = '<div style="padding:10px; color:#444; text-align:center; font-size:12px;">Пусто</div>';
+            return;
+        }
+
+        appData.journal.forEach(entry => {
+            const item = document.createElement('div');
+            item.className = 'journal-entry-item';
+            item.innerHTML = `
+                <div class="journal-date">${escapeHtml(entry.date)}</div>
+                <div class="journal-preview">${escapeHtml(entry.text.substring(0, 30))}...</div>
+            `;
+            item.onclick = () => loadEntry(entry);
+            journalList.appendChild(item);
+        });
+    }
+
+    function loadEntry(entry) {
+        logArea.value = entry.text;
+    }
+
+    // === MOBILE DAY CARD ===
+    let mobileViewDay = null;
+    const RU_MONTHS = ['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'];
+
+    function renderDayCard() {
+        const view = document.getElementById('tracker-mobile');
+        if (!view) return;
+        if (mobileViewDay === null) mobileViewDay = getCurrentTrackerDay() || 1;
+        mobileViewDay = Math.max(1, Math.min(TOTAL_DAYS, mobileViewDay));
+
+        const today = getCurrentTrackerDay();
+        view.classList.toggle('is-today', mobileViewDay === today);
+
+        document.getElementById('dc-day').textContent = mobileViewDay;
+
+        const now = new Date();
+        const dateLabel = mobileViewDay + ' ' + RU_MONTHS[now.getMonth()];
+        document.getElementById('dc-date').textContent = dateLabel;
+
+        const habits = document.getElementById('dc-habits');
+        habits.innerHTML = '';
+        appData.habitDefs.forEach(function(h) {
+            const key = h.id + '_' + mobileViewDay;
+            const done = !!appData.habits[key];
+            const btn = document.createElement('button');
+            btn.className = 'day-card-habit' + (done ? ' done' : '');
+            if (!done) btn.style.borderLeftColor = h.color;
+            btn.innerHTML = '<span class="day-card-habit-check">' + (done ? '✓' : '') + '</span>' +
+                            '<span>' + h.name.replace(/[<>"']/g, '') + '</span>';
+            btn.onclick = function() { toggleHabit(key); };
+            habits.appendChild(btn);
+        });
+
+        const streak = calculateStreak();
+        document.getElementById('dc-streak').textContent = streak >= 2 ? '🔥 ' + streak + ' дней' : '';
+    }
+
+    function changeDayCard(delta) {
+        if (mobileViewDay === null) mobileViewDay = getCurrentTrackerDay() || 1;
+        mobileViewDay = Math.max(1, Math.min(TOTAL_DAYS, mobileViewDay + delta));
+        renderDayCard();
+    }
+
+    let _touchX = null;
+    function initDayCardSwipe() {
+        const view = document.getElementById('tracker-mobile');
+        if (!view) return;
+        view.addEventListener('touchstart', function(e) {
+            _touchX = e.touches[0].clientX;
+        }, { passive: true });
+        view.addEventListener('touchend', function(e) {
+            if (_touchX === null) return;
+            const dx = e.changedTouches[0].clientX - _touchX;
+            if (Math.abs(dx) > 50) {
+                changeDayCard(dx > 0 ? -1 : 1);
+            }
+            _touchX = null;
+        }, { passive: true });
+    }
+
+    // === HABITS EDIT MODE ===
+    function toggleEditMode() {
+        editMode = !editMode;
+        document.getElementById('edit-toggle').textContent = editMode ? '✓ ГОТОВО' : '⚙ EDIT';
+        renderGrid();
+    }
+
+    function renameHabit(id) {
+        const habit = appData.habitDefs.find(h => h.id === id);
+        if (!habit) return;
+        const newName = prompt('Новое название привычки:', habit.name);
+        if (newName && newName.trim() && newName.trim() !== habit.name) {
+            habit.name = newName.trim();
+            saveData();
+            renderGrid();
+        }
+    }
+    function deleteHabit(id) {
+        const habit = appData.habitDefs.find(h => h.id === id);
+        if (!habit) return;
+        if (!confirm(`Удалить привычку «${habit.name}»? Все её галочки тоже удалятся.`)) return;
+        appData.habitDefs = appData.habitDefs.filter(h => h.id !== id);
+        Object.keys(appData.habits).forEach(key => {
+            if (key.startsWith(id + '_')) delete appData.habits[key];
+        });
+        saveData();
+        renderGrid();
+    }
+    let _pendingColor = HABIT_COLORS[0];
+
+    function addHabit() {
+        document.getElementById('habit-modal-name').value = '';
+        _pendingColor = HABIT_COLORS[0];
+        const picker = document.getElementById('habit-modal-colors');
+        picker.innerHTML = '';
+        HABIT_COLORS.forEach(c => {
+            const sw = document.createElement('div');
+            sw.className = 'color-swatch' + (c === _pendingColor ? ' selected' : '');
+            sw.style.background = c;
+            sw.onclick = () => {
+                _pendingColor = c;
+                picker.querySelectorAll('.color-swatch').forEach(el => el.classList.remove('selected'));
+                sw.classList.add('selected');
+            };
+            picker.appendChild(sw);
+        });
+        document.getElementById('habit-modal-overlay').classList.add('visible');
+        setTimeout(() => document.getElementById('habit-modal-name').focus(), 50);
+    }
+
+    function closeHabitModal() {
+        document.getElementById('habit-modal-overlay').classList.remove('visible');
+    }
+
+    function confirmAddHabit() {
+        const name = document.getElementById('habit-modal-name').value.trim();
+        if (!name) { alert('Название обязательно'); return; }
+        const id = 'h_' + Date.now();
+        appData.habitDefs.push({
+            id,
+            name,
+            color: _pendingColor,
+            order: appData.habitDefs.length
+        });
+        closeHabitModal();
+        saveData();
+        renderGrid();
+    }
+
+    // === PLANNER ===
+    function newPlanId() {
+        return 'p_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
+    }
+    function newItemId() {
+        return 'i_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
+    }
+    function getPlan(id) {
+        return appData.plans.find(p => p.id === id);
+    }
+
+    function renderPlanner() {
+        renderPlannerSidebar();
+        renderPlannerMain();
+    }
+
+    function renderPlannerSidebar() {
+        const sidebar = document.getElementById('planner-sidebar');
+        if (!sidebar) return;
+        sidebar.innerHTML = '';
+        const active = appData.plans.filter(p => p.status === 'active');
+
+        if (active.length === 0) {
+            const empty = document.createElement('div');
+            empty.className = 'planner-empty';
+            empty.style.padding = '20px';
+            empty.textContent = 'нет активных планов';
+            sidebar.appendChild(empty);
+        } else {
+            const today = new Date().toISOString().slice(0,10);
+            active.forEach(plan => {
+                const item = document.createElement('div');
+                item.className = 'plan-list-item';
+                if (plan.id === selectedPlanId) item.classList.add('active');
+                if (plan.deadline) {
+                    if (plan.deadline < today) item.classList.add('overdue');
+                    else if (plan.deadline === today) item.classList.add('due-today');
+                }
+                const done = plan.items.filter(i => i.done).length;
+                const total = plan.items.length;
+                item.innerHTML = `
+                    <div class="plan-list-title">${escapeHtml(plan.title)}</div>
+                    <div class="plan-list-meta">${done}/${total}${plan.deadline ? ' · ' + plan.deadline : ''}</div>
+                `;
+                item.onclick = () => selectPlan(plan.id);
+                sidebar.appendChild(item);
+            });
+        }
+
+        const newBtn = document.createElement('button');
+        newBtn.className = 'plan-new-btn';
+        newBtn.textContent = '+ НОВЫЙ ПЛАН';
+        newBtn.onclick = newPlanForm;
+        sidebar.appendChild(newBtn);
+    }
+
+    function selectPlan(id) {
+        selectedPlanId = id;
+        renderPlanner();
+    }
+
+    function escapeHtml(s) {
+        return String(s).replace(/[&<>"']/g, c => ({
+            '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+        }[c]));
+    }
+
+    function renderPlannerMain() {
+        const main = document.getElementById('planner-main');
+        if (!main) return;
+        if (!selectedPlanId) {
+            main.innerHTML = '<div class="planner-empty">Выбери план слева или создай новый.</div>';
+            return;
+        }
+        const plan = getPlan(selectedPlanId);
+        if (!plan || plan.status !== 'active') {
+            selectedPlanId = null;
+            main.innerHTML = '<div class="planner-empty">План недоступен.</div>';
+            return;
+        }
+        const done = plan.items.filter(i => i.done).length;
+        const total = plan.items.length;
+        const today = new Date().toISOString().slice(0,10);
+        let titleColor = '';
+        if (plan.deadline) {
+            if (plan.deadline < today) titleColor = 'color:var(--color-fail);';
+            else if (plan.deadline === today) titleColor = 'color:var(--color-warn);';
+        }
+
+        main.innerHTML = `
+            <div class="plan-header">
+                <input class="plan-title-input" style="${titleColor}"
+                       value="${escapeHtml(plan.title)}"
+                       onchange="renamePlan('${plan.id}', this.value)" />
+                <div class="plan-meta">
+                    <span>прогресс: <strong>${done}/${total}</strong></span>
+                    <label>дедлайн:
+                        <input type="date" value="${plan.deadline || ''}"
+                               onchange="setPlanDeadline('${plan.id}', this.value)" />
+                    </label>
+                </div>
+            </div>
+            <div class="plan-items" id="plan-items-${plan.id}"></div>
+            <div class="plan-actions">
+                <div style="display:flex; gap:8px;">
+                    <button class="btn" onclick="duplicatePlan('${plan.id}')">⎘ КОПИЯ</button>
+                    <button class="btn" onclick="deletePlanForever('${plan.id}')">🗑 УДАЛИТЬ</button>
+                </div>
+                <button class="btn btn-primary" onclick="closePlan('${plan.id}')">ЗАКРЫТЬ ПЛАН</button>
+            </div>
+        `;
+
+        renderPlanItems(plan);
+    }
+
+    function renderPlanItems(plan) {
+        const wrap = document.getElementById('plan-items-' + plan.id);
+        if (!wrap) return;
+        wrap.innerHTML = '';
+        plan.items.forEach(item => {
+            const row = document.createElement('div');
+            row.className = 'plan-item' + (item.done ? ' done' : '');
+            row.innerHTML = `
+                <div class="plan-item-check ${item.done ? 'done' : ''}" onclick="toggleItem('${plan.id}','${item.id}')">${item.done ? '✓' : ''}</div>
+                <input class="plan-item-text" value="${escapeHtml(item.text)}"
+                       onchange="setItemText('${plan.id}','${item.id}', this.value)"
+                       onkeydown="onItemKey(event, '${plan.id}', '${item.id}')" />
+                <button class="plan-item-delete" onclick="deleteItem('${plan.id}','${item.id}')">×</button>
+            `;
+            wrap.appendChild(row);
+        });
+        const adder = document.createElement('div');
+        adder.className = 'plan-item-add';
+        adder.textContent = '+ пункт';
+        adder.onclick = () => addItem(plan.id, '', true);
+        wrap.appendChild(adder);
+    }
+
+    function newPlanForm() {
+        selectedPlanId = null;
+        renderPlannerSidebar();
+        const main = document.getElementById('planner-main');
+        main.innerHTML = `
+            <div class="plan-header">
+                <input id="new-plan-title" type="text" class="plan-title-input" placeholder="Название плана (например: План на Май)" />
+                <div class="plan-meta">
+                    <label>Дедлайн (опц.):</label>
+                    <input id="new-plan-deadline" type="date" />
+                </div>
+            </div>
+            <div class="planner-empty" style="text-align:left;">Создай план, потом добавишь пункты.</div>
+            <div class="plan-actions">
+                <button class="btn" onclick="cancelNewPlan()">ОТМЕНА</button>
+                <button class="btn btn-primary" onclick="createPlan()">СОЗДАТЬ</button>
+            </div>
+        `;
+        setTimeout(() => document.getElementById('new-plan-title').focus(), 50);
+    }
+
+    function cancelNewPlan() {
+        renderPlannerMain();
+    }
+
+    function createPlan() {
+        const title = document.getElementById('new-plan-title').value.trim();
+        if (!title) { alert('Название обязательно'); return; }
+        const deadline = document.getElementById('new-plan-deadline').value || null;
+        const plan = {
+            id: newPlanId(),
+            title,
+            deadline,
+            items: [],
+            status: 'active',
+            createdAt: Date.now(),
+            completedAt: null
+        };
+        appData.plans.push(plan);
+        selectedPlanId = plan.id;
+        saveData();
+    }
+
+    function renamePlan(planId, newTitle) {
+        const plan = getPlan(planId);
+        if (!plan) return;
+        const trimmed = newTitle.trim();
+        if (trimmed && trimmed !== plan.title) {
+            plan.title = trimmed;
+            saveData();
+        }
+    }
+    function setPlanDeadline(planId, value) {
+        const plan = getPlan(planId);
+        if (!plan) return;
+        plan.deadline = value || null;
+        saveData();
+    }
+    function toggleItem(planId, itemId) {
+        const plan = getPlan(planId);
+        if (!plan) return;
+        const item = plan.items.find(i => i.id === itemId);
+        if (!item) return;
+        item.done = !item.done;
+
+        if (plan.items.length > 0 && plan.items.every(i => i.done)) {
+            archivePlan(plan);
+            showToast('>> PLAN ARCHIVED');
+            return;
+        }
+        saveData();
+    }
+
+    function setItemText(planId, itemId, text) {
+        const plan = getPlan(planId);
+        if (!plan) return;
+        const item = plan.items.find(i => i.id === itemId);
+        if (!item) return;
+        const trimmed = text.trim();
+        if (!trimmed) {
+            plan.items = plan.items.filter(i => i.id !== itemId);
+        } else {
+            item.text = trimmed;
+        }
+        saveData();
+    }
+
+    function deleteItem(planId, itemId) {
+        const plan = getPlan(planId);
+        if (!plan) return;
+        plan.items = plan.items.filter(i => i.id !== itemId);
+        saveData();
+    }
+
+    function addItem(planId, text = '', focusNew = false) {
+        const plan = getPlan(planId);
+        if (!plan) return;
+        const item = { id: newItemId(), text: text, done: false };
+        plan.items.push(item);
+        saveData();
+        if (focusNew) {
+            setTimeout(() => {
+                const wrap = document.getElementById('plan-items-' + planId);
+                if (!wrap) return;
+                const inputs = wrap.querySelectorAll('.plan-item-text');
+                if (inputs.length) inputs[inputs.length - 1].focus();
+            }, 30);
+        }
+    }
+    function onItemKey(evt, planId, itemId) {
+        if (evt.key !== 'Enter') return;
+        evt.preventDefault();
+        const text = evt.target.value.trim();
+        const plan = getPlan(planId);
+        if (!plan) return;
+        const item = plan.items.find(i => i.id === itemId);
+        if (item) item.text = text;
+        if (!text) return;
+        addItem(planId, '', true);
+    }
+    function duplicatePlan(planId) {
+        const plan = getPlan(planId);
+        if (!plan) return;
+        const copy = {
+            id: newPlanId(),
+            title: plan.title + ' (копия)',
+            deadline: plan.deadline,
+            items: plan.items.map(i => ({ id: newItemId(), text: i.text, done: false })),
+            status: 'active',
+            createdAt: Date.now(),
+            completedAt: null
+        };
+        appData.plans.push(copy);
+        selectedPlanId = copy.id;
+        saveData();
+    }
+
+    function deletePlanForever(planId) {
+        const plan = getPlan(planId);
+        if (!plan) return;
+        if (!confirm(`Удалить план «${plan.title}» полностью? Это нельзя отменить.`)) return;
+        appData.plans = appData.plans.filter(p => p.id !== planId);
+        if (selectedPlanId === planId) selectedPlanId = null;
+        saveData();
+    }
+    function closePlan(planId) {
+        const plan = getPlan(planId);
+        if (!plan) return;
+        const done = plan.items.filter(i => i.done).length;
+        const total = plan.items.length;
+        if (total === 0) {
+            if (!confirm(`План «${plan.title}» без пунктов. Закрыть?`)) return;
+        } else if (done < total) {
+            if (!confirm(`Закрыть «${plan.title}» с ${total - done} невыполненных из ${total}?`)) return;
+        }
+        archivePlan(plan);
+    }
+
+    function archivePlan(plan) {
+        plan.status = 'archived';
+        plan.completedAt = Date.now();
+        if (selectedPlanId === plan.id) selectedPlanId = null;
+        saveData();
+    }
+
+    // === PLAN ARCHIVE ===
+    function renderArchive() {
+        const list = document.getElementById('archive-list');
+        if (!list) return;
+        list.innerHTML = '';
+        const archived = appData.plans.filter(p => p.status === 'archived')
+            .sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0));
+        document.getElementById('archive-toggle-text').textContent =
+            `🏆 ВЫПОЛНЕННЫЕ ПЛАНЫ (${archived.length})`;
+
+        archived.forEach(plan => {
+            const done = plan.items.filter(i => i.done).length;
+            const total = plan.items.length;
+            const closedDate = plan.completedAt
+                ? new Date(plan.completedAt).toLocaleDateString('ru-RU')
+                : '—';
+            const card = document.createElement('div');
+            card.className = 'archived-plan';
+            card.innerHTML = `
+                <div class="archived-plan-header" onclick="toggleArchivedCard(this)">
+                    <span class="archived-plan-title">${escapeHtml(plan.title)}</span>
+                    <span class="archived-plan-meta">${done}/${total} · закрыт ${closedDate}</span>
+                </div>
+                <div class="archived-plan-items">
+                    ${plan.items.map(i =>
+                        `<div class="archived-plan-item ${i.done ? 'done' : ''}">${i.done ? '✓' : '·'} ${escapeHtml(i.text)}</div>`
+                    ).join('')}
+                    <div class="archived-plan-actions">
+                        <button class="btn" onclick="restorePlan('${plan.id}'); event.stopPropagation();">↩ ВЕРНУТЬ</button>
+                        <button class="btn" onclick="deleteArchivedPlan('${plan.id}'); event.stopPropagation();">🗑 УДАЛИТЬ НАВСЕГДА</button>
+                    </div>
+                </div>
+            `;
+            list.appendChild(card);
+        });
+    }
+
+    function toggleArchivedCard(headerEl) {
+        headerEl.parentElement.classList.toggle('open');
+    }
+
+    function restorePlan(planId) {
+        const plan = getPlan(planId);
+        if (!plan) return;
+        plan.status = 'active';
+        plan.completedAt = null;
+        selectedPlanId = plan.id;
+        saveData();
+    }
+
+    function deleteArchivedPlan(planId) {
+        const plan = getPlan(planId);
+        if (!plan) return;
+        if (!confirm(`Удалить «${plan.title}» из архива навсегда? Это нельзя отменить.`)) return;
+        appData.plans = appData.plans.filter(p => p.id !== planId);
+        saveData();
+    }
+
+    function toggleArchive() {
+        const sec = document.getElementById('archive');
+        sec.classList.toggle('open');
+        document.getElementById('archive-chevron').textContent =
+            sec.classList.contains('open') ? '▲' : '▼';
+    }
+
+    // --- CORE LOGIC ---
+    function toggleHabit(key) {
+        const wasActive = !!appData.habits[key];
+        if (wasActive) {
+            delete appData.habits[key];
+        } else {
+            appData.habits[key] = true;
+        }
+        saveData();
+        renderGrid();
+        renderDayCard();
+        if (!wasActive) checkDayComplete(key);
+    }
+
+    function updateStats() {
+        const totalChecks = appData.habitDefs.length * TOTAL_DAYS;
+        const currentChecks = Object.keys(appData.habits).length;
+        const percent = totalChecks > 0 ? Math.round((currentChecks / totalChecks) * 100) : 0;
+        document.getElementById('done-count').innerText = currentChecks;
+        document.getElementById('total-count').innerText = totalChecks;
+        document.getElementById('overall-progress').style.width = percent + '%';
+    }
+
+    function drawSleepGraph() {
+        const canvas = document.getElementById('sleepCanvas');
+        const ctx = canvas.getContext('2d');
+        const container = canvas.parentElement;
+        canvas.width = container.offsetWidth;
+        canvas.height = container.offsetHeight;
+        
+        const w = canvas.width;
+        const h = canvas.height;
+        ctx.clearRect(0,0,w,h);
+
+        // Guide line 8h
+        const targetY = h - (8/12)*h;
+        ctx.strokeStyle = '#333';
+        ctx.beginPath(); ctx.moveTo(0, targetY); ctx.lineTo(w, targetY); ctx.stroke();
+        ctx.fillStyle = '#666'; ctx.fillText('8h', 5, targetY-2);
+
+        const stepX = w / TOTAL_DAYS;
+        ctx.beginPath();
+        ctx.strokeStyle = '#00ff41';
+        ctx.lineWidth = 2;
+        ctx.shadowColor = '#00ff41'; ctx.shadowBlur = 10;
+        
+        let hasStart = false;
+        for(let i=0; i<TOTAL_DAYS; i++) {
+            const val = parseFloat(appData.sleep[i]);
+            if(val > 0) {
+                let y = h - (val/12)*h;
+                let x = (i*stepX) + (stepX/2);
+                if(!hasStart) { ctx.moveTo(x,y); hasStart = true; } 
+                else { ctx.lineTo(x,y); }
+            }
+        }
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        ctx.fillStyle = '#fff';
+        for(let i=0; i<TOTAL_DAYS; i++) {
+            const val = parseFloat(appData.sleep[i]);
+            if(val > 0) {
+                let y = h - (val/12)*h;
+                let x = (i*stepX) + (stepX/2);
+                ctx.beginPath(); ctx.arc(x,y,3,0,Math.PI*2); ctx.fill();
+            }
+        }
+    }
+
+    function resetData() {
+        if (confirm('УДАЛИТЬ ВЕСЬ ПРОГРЕСС, ЖУРНАЛ, ПЛАНЫ И КАСТОМНЫЕ ПРИВЫЧКИ?')) {
+            localStorage.removeItem('hardmode_v4');
+            location.reload();
+        }
+    }
+
+    function togglePanic(show) {
+        document.getElementById('panic-overlay').style.display = show ? 'flex' : 'none';
+    }
+
+    // === NAV COUNTER ===
+    function updateNavCounter() {
+        const el = document.getElementById('plan-count');
+        if (!el) return;
+        const count = appData.plans.filter(p => p.status === 'active').length;
+        el.textContent = count > 0 ? ` (${count})` : '';
+    }
+
+    // === TOAST ===
+    let _toastTimer = null;
+    function showToast(text, duration = 2000) {
+        const t = document.getElementById('toast');
+        if (!t) return;
+        t.textContent = text;
+        t.classList.add('visible');
+        if (_toastTimer) clearTimeout(_toastTimer);
+        _toastTimer = setTimeout(() => t.classList.remove('visible'), duration);
+    }
+
+    // === SETTINGS ===
+    function toggleSkinDropdown() {
+        document.getElementById('skin-dropdown').classList.toggle('visible');
+    }
+
+    function setTheme(name) {
+        document.body.classList.remove('theme-protocol30', 'theme-premium');
+        document.body.classList.add('theme-' + name);
+        document.documentElement.dataset.theme = name;
+        localStorage.setItem('theme', name);
+        document.querySelectorAll('.skin-option').forEach(function(el) {
+            el.classList.toggle('active', el.dataset.theme === name);
+        });
+        document.getElementById('skin-dropdown').classList.remove('visible');
+        triggerHeroFillAnim();
+        if (typeof showToast === 'function') {
+            showToast('>> THEME: ' + name.toUpperCase());
+        }
+    }
+
+    function openSettings() {
+        const currentTheme = localStorage.getItem('theme') || 'protocol30';
+        const themeInput = document.querySelector('input[name="settings-theme"][value="' + currentTheme + '"]');
+        if (themeInput) themeInput.checked = true;
+
+        document.getElementById('opt-spotlight').checked = localStorage.getItem('spotlightEnabled') !== 'false';
+        document.getElementById('opt-reveal').checked = localStorage.getItem('revealEnabled') !== 'false';
+        document.getElementById('opt-confetti').checked = localStorage.getItem('confettiEnabled') !== 'false';
+
+        document.getElementById('settings-modal').classList.add('visible');
+    }
+
+    function closeSettings() {
+        document.getElementById('settings-modal').classList.remove('visible');
+    }
+
+    function setEffect(name, enabled) {
+        const key = name + 'Enabled';
+        localStorage.setItem(key, enabled ? 'true' : 'false');
+        document.body.classList.toggle(name + '-off', !enabled);
+    }
+
+    function applyEffectsOnLoad() {
+        if (localStorage.getItem('spotlightEnabled') === 'false') document.body.classList.add('spotlight-off');
+        if (localStorage.getItem('revealEnabled') === 'false') document.body.classList.add('reveal-off');
+    }
+
+    function applyInitialTheme() {
+        const t = localStorage.getItem('theme') || 'protocol30';
+        document.querySelectorAll('.skin-option').forEach(function(el) {
+            el.classList.toggle('active', el.dataset.theme === t);
+        });
+    }
+
+    document.addEventListener('click', function(e) {
+        const dropdown = document.getElementById('skin-dropdown');
+        const btn = document.getElementById('skin-toggle-btn');
+        if (!dropdown || !btn) return;
+        if (!dropdown.contains(e.target) && !btn.contains(e.target)) {
+            dropdown.classList.remove('visible');
+        }
+    });
+
+    init();
+</script>
+</body>
+</html>
