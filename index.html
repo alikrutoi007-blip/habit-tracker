@@ -1333,6 +1333,235 @@
     <div id="toast" class="toast"></div>
 
 <script>
+    // === I18N ===
+    const STRINGS = {
+        en: {
+            // Nav
+            nav_home: 'HOME',
+            nav_tracker: 'TRACKER',
+            nav_plans: 'PLANS',
+            nav_sleep: 'SLEEP',
+            nav_journal: 'JOURNAL',
+            nav_rules: 'RULES',
+            // Hero
+            hero_quote: '"The relentless pursuit of pleasure and avoidance of pain leads to pain."',
+            hero_day: 'DAY',
+            hero_of_30: '/ 30',
+            // Header
+            header_warroom: '// WAR ROOM',
+            header_completed: 'COMPLETED',
+            header_status: 'STATUS',
+            header_active: 'ACTIVE',
+            edit: '⚙ EDIT',
+            done_edit: '✓ DONE',
+            // Add habit
+            add_habit: '+ ADD HABIT',
+            new_habit_name: 'New habit name:',
+            // Tracker
+            today: 'TODAY',
+            // Plans
+            plans_title: '// PLANS',
+            new_plan: '+ NEW PLAN',
+            plan_title_placeholder: 'Plan title...',
+            plan_deadline: 'Deadline (optional)',
+            plan_item_placeholder: 'Add item...',
+            create_plan: 'CREATE',
+            cancel: 'CANCEL',
+            no_active_plans: 'No active plans',
+            archive_plan: 'ARCHIVE',
+            duplicate_plan: 'DUPLICATE',
+            delete_plan: 'DELETE',
+            confirm_close_plan: 'Close this plan and archive it?',
+            confirm_delete_plan: 'Delete this plan permanently?',
+            confirm_delete_archive: 'Delete from archive permanently?',
+            // Archive
+            archive_title: '// ARCHIVE',
+            no_archived: 'Archive is empty',
+            restore: 'RESTORE',
+            delete: 'DELETE',
+            // Sleep
+            sleep_title: '// SLEEP',
+            // Journal
+            journal_title: '// JOURNAL',
+            journal_placeholder: 'Write your thoughts...',
+            save_entry: 'SAVE',
+            empty_journal: 'Empty',
+            // Rules
+            rules_title: '// RULES',
+            // Settings
+            settings_title: '// SETTINGS',
+            settings_theme: 'Theme',
+            settings_effects: 'Effects',
+            opt_spotlight: 'Cursor spotlight',
+            opt_reveal: 'Scroll reveal',
+            opt_confetti: 'Confetti on 100%',
+            settings_language: 'Language',
+            settings_sync: '// SYNC',
+            sign_in_to_sync: 'Sign in to sync to cloud',
+            local_data_stays: 'Local data stays on this device.',
+            signed_in_as: 'Signed in as',
+            sign_out: 'SIGN OUT',
+            delete_account: 'DELETE ACCOUNT',
+            confirm_delete_account: 'This will permanently delete your cloud data. Local data on this device stays. Continue?',
+            settings_reset: 'Reset all data',
+            reset_btn: 'RESET',
+            confirm_reset: 'Erase all data and start over?',
+            close: 'CLOSE',
+            // Auth modal
+            cloud_sync_title: '// CLOUD SYNC',
+            email_placeholder: 'email@example.com',
+            send_magic_link: 'SEND MAGIC LINK',
+            or_divider: 'OR',
+            continue_with_google: 'CONTINUE WITH GOOGLE',
+            auth_subtitle: 'Sign in to access your data everywhere.',
+            sign_in: 'SIGN IN',
+            // Migration dialog
+            data_conflict_title: '// DATA CONFLICT',
+            data_conflict_body: 'Found data both locally and in your account. Which version to keep?',
+            local_label: 'LOCAL (this device)',
+            cloud_label: 'CLOUD (your account)',
+            keep_local: 'KEEP LOCAL',
+            keep_cloud: 'KEEP CLOUD',
+            last_edit: 'Last edit',
+            habits_count: 'habits',
+            plans_count: 'plans',
+            journal_count: 'journal entries',
+            // Toasts
+            toast_synced: '>> SYNCED',
+            toast_sync_failed: '>> SYNC FAILED — WILL RETRY',
+            toast_check_inbox: '>> CHECK YOUR INBOX',
+            toast_data_synced_to_cloud: '>> DATA SYNCED TO CLOUD',
+            toast_data_loaded_from_cloud: '>> DATA LOADED FROM CLOUD',
+            toast_signed_in: '>> SIGNED IN',
+            toast_signed_out: '>> SIGNED OUT',
+            toast_account_deleted: '>> ACCOUNT DELETED',
+            toast_invalid_email: '>> INVALID EMAIL',
+            toast_auth_error: '>> AUTH ERROR — TRY AGAIN'
+        },
+        ru: {
+            nav_home: 'ГЛАВНАЯ',
+            nav_tracker: 'ТРЕКЕР',
+            nav_plans: 'ПЛАНЫ',
+            nav_sleep: 'СОН',
+            nav_journal: 'ЖУРНАЛ',
+            nav_rules: 'ПРАВИЛА',
+            hero_quote: '"Безудержная погоня за удовольствием и избегание боли ведут к боли."',
+            hero_day: 'ДЕНЬ',
+            hero_of_30: '/ 30',
+            header_warroom: '// КОМАНДНЫЙ ПУНКТ',
+            header_completed: 'ВЫПОЛНЕНО',
+            header_status: 'СТАТУС',
+            header_active: 'АКТИВЕН',
+            edit: '⚙ РЕД',
+            done_edit: '✓ ГОТОВО',
+            add_habit: '+ ДОБАВИТЬ',
+            new_habit_name: 'Название привычки:',
+            today: 'СЕГОДНЯ',
+            plans_title: '// ПЛАНЫ',
+            new_plan: '+ НОВЫЙ ПЛАН',
+            plan_title_placeholder: 'Название плана...',
+            plan_deadline: 'Дедлайн (опционально)',
+            plan_item_placeholder: 'Добавить пункт...',
+            create_plan: 'СОЗДАТЬ',
+            cancel: 'ОТМЕНА',
+            no_active_plans: 'Нет активных планов',
+            archive_plan: 'В АРХИВ',
+            duplicate_plan: 'КОПИЯ',
+            delete_plan: 'УДАЛИТЬ',
+            confirm_close_plan: 'Закрыть план и отправить в архив?',
+            confirm_delete_plan: 'Удалить план навсегда?',
+            confirm_delete_archive: 'Удалить из архива навсегда?',
+            archive_title: '// АРХИВ',
+            no_archived: 'Архив пуст',
+            restore: 'ВЕРНУТЬ',
+            delete: 'УДАЛИТЬ',
+            sleep_title: '// СОН',
+            journal_title: '// ЖУРНАЛ',
+            journal_placeholder: 'Запиши свои мысли...',
+            save_entry: 'СОХРАНИТЬ',
+            empty_journal: 'Пусто',
+            rules_title: '// ПРАВИЛА',
+            settings_title: '// НАСТРОЙКИ',
+            settings_theme: 'Тема',
+            settings_effects: 'Эффекты',
+            opt_spotlight: 'Курсор-прожектор',
+            opt_reveal: 'Скролл-анимация',
+            opt_confetti: 'Конфетти на 100%',
+            settings_language: 'Язык',
+            settings_sync: '// СИНХРОНИЗАЦИЯ',
+            sign_in_to_sync: 'Войти для синхронизации',
+            local_data_stays: 'Локальные данные остаются на этом устройстве.',
+            signed_in_as: 'Вошёл как',
+            sign_out: 'ВЫЙТИ',
+            delete_account: 'УДАЛИТЬ АККАУНТ',
+            confirm_delete_account: 'Это удалит твои данные в облаке навсегда. Локальные данные на устройстве остаются. Продолжить?',
+            settings_reset: 'Сбросить все данные',
+            reset_btn: 'СБРОС',
+            confirm_reset: 'Стереть всё и начать заново?',
+            close: 'ЗАКРЫТЬ',
+            cloud_sync_title: '// ОБЛАКО',
+            email_placeholder: 'email@example.com',
+            send_magic_link: 'ПОЛУЧИТЬ ССЫЛКУ',
+            or_divider: 'ИЛИ',
+            continue_with_google: 'ВОЙТИ ЧЕРЕЗ GOOGLE',
+            auth_subtitle: 'Войди чтобы получить доступ к данным с любого устройства.',
+            sign_in: 'ВОЙТИ',
+            data_conflict_title: '// КОНФЛИКТ ДАННЫХ',
+            data_conflict_body: 'Найдены данные и локально, и в аккаунте. Какую версию оставить?',
+            local_label: 'ЛОКАЛЬНО (это устройство)',
+            cloud_label: 'ОБЛАКО (твой аккаунт)',
+            keep_local: 'ЛОКАЛЬНЫЕ',
+            keep_cloud: 'ОБЛАЧНЫЕ',
+            last_edit: 'Последнее изменение',
+            habits_count: 'привычек',
+            plans_count: 'планов',
+            journal_count: 'записей журнала',
+            toast_synced: '>> СИНХРОНИЗИРОВАНО',
+            toast_sync_failed: '>> ОШИБКА СИНХРОНИЗАЦИИ — ПОВТОР',
+            toast_check_inbox: '>> ПРОВЕРЬ ПОЧТУ',
+            toast_data_synced_to_cloud: '>> ДАННЫЕ В ОБЛАКЕ',
+            toast_data_loaded_from_cloud: '>> ДАННЫЕ ЗАГРУЖЕНЫ ИЗ ОБЛАКА',
+            toast_signed_in: '>> ВХОД ВЫПОЛНЕН',
+            toast_signed_out: '>> ВЫХОД ВЫПОЛНЕН',
+            toast_account_deleted: '>> АККАУНТ УДАЛЁН',
+            toast_invalid_email: '>> НЕВЕРНЫЙ EMAIL',
+            toast_auth_error: '>> ОШИБКА АВТОРИЗАЦИИ'
+        }
+    };
+
+    let currentLang = localStorage.getItem('lang')
+        || (navigator.language && navigator.language.toLowerCase().startsWith('ru') ? 'ru' : 'en');
+
+    function t(key) {
+        return (STRINGS[currentLang] && STRINGS[currentLang][key])
+            || STRINGS.en[key]
+            || key;
+    }
+
+    function applyLanguage() {
+        document.documentElement.lang = currentLang;
+        document.querySelectorAll('[data-i18n]').forEach(function(el) {
+            const key = el.dataset.i18n;
+            const val = t(key);
+            const attr = el.dataset.i18nAttr;
+            if (attr) {
+                el.setAttribute(attr, val);
+            } else {
+                el.textContent = val;
+            }
+        });
+        const btn = document.getElementById('lang-toggle-btn');
+        if (btn) btn.textContent = currentLang.toUpperCase();
+    }
+
+    function setLanguage(lang) {
+        if (!STRINGS[lang]) return;
+        currentLang = lang;
+        localStorage.setItem('lang', lang);
+        applyLanguage();
+        if (typeof renderAll === 'function') renderAll();
+    }
+
     // === STATE ===
     const TOTAL_DAYS = 30;
 
