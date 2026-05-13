@@ -8,6 +8,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
     <script>
         (function() {
             var t = localStorage.getItem('theme') || 'protocol30';
@@ -1634,6 +1636,78 @@
         if (typeof renderAll === 'function') renderAll();
     }
 
+    // === AUTH ===
+    const Auth = {
+        client: null,
+        currentUser: null,
+        listeners: [],
+
+        init() {
+            if (typeof window.supabase === 'undefined' || !window.SUPABASE_URL || !window.SUPABASE_ANON_KEY
+                || window.SUPABASE_URL.indexOf('YOUR-PROJECT') !== -1) {
+                console.warn('Supabase not configured; running in guest-only mode.');
+                return;
+            }
+            try {
+                this.client = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY, {
+                    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+                });
+
+                this.client.auth.onAuthStateChange((event, session) => {
+                    this.currentUser = session ? session.user : null;
+                    this.listeners.forEach(fn => { try { fn(event, this.currentUser); } catch(e){console.error(e);} });
+                });
+
+                this.client.auth.getSession().then(({ data }) => {
+                    this.currentUser = data.session ? data.session.user : null;
+                    updateAuthUI();
+                });
+            } catch (e) {
+                console.error('Supabase init failed:', e);
+            }
+        },
+
+        isLoggedIn() { return !!this.currentUser; },
+        userId() { return this.currentUser ? this.currentUser.id : null; },
+        userEmail() { return this.currentUser ? this.currentUser.email : null; },
+
+        onChange(fn) { this.listeners.push(fn); },
+
+        async sendMagicLink(email) {
+            if (!this.client) throw new Error('Auth not initialized');
+            const { error } = await this.client.auth.signInWithOtp({
+                email,
+                options: { emailRedirectTo: window.location.origin + window.location.pathname }
+            });
+            if (error) throw error;
+        },
+
+        async signInWithGoogle() {
+            if (!this.client) throw new Error('Auth not initialized');
+            const { error } = await this.client.auth.signInWithOAuth({
+                provider: 'google',
+                options: { redirectTo: window.location.origin + window.location.pathname }
+            });
+            if (error) throw error;
+        },
+
+        async signOut() {
+            if (!this.client) return;
+            await this.client.auth.signOut();
+        },
+
+        async deleteAccount() {
+            if (!this.client || !this.currentUser) return;
+            const uid = this.currentUser.id;
+            const { error: delErr } = await this.client.from('user_data').delete().eq('user_id', uid);
+            if (delErr) throw delErr;
+            await this.client.auth.signOut();
+        }
+    };
+
+    function updateAuthUI() {}
+    function handleLogin() {}
+
     // === STATE ===
     const TOTAL_DAYS = 30;
 
@@ -2809,6 +2883,15 @@
     });
 
     init();
+    Auth.init();
+    Auth.onChange(function(event, user) {
+        updateAuthUI();
+        applyLanguage();
+        if (event === 'SIGNED_IN') {
+            showToast(t('toast_signed_in'));
+            handleLogin();
+        }
+    });
 </script>
 </body>
 </html>
