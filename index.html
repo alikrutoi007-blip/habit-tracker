@@ -1066,13 +1066,14 @@
 
     <!-- NAV BAR -->
     <nav class="nav-bar">
-        <a href="#top" class="nav-link">ГЛАВНАЯ</a>
-        <a href="#tracker" class="nav-link">ТРЕКЕР</a>
-        <a href="#planner" class="nav-link">ПЛАНЫ<span id="plan-count" class="nav-count"></span></a>
-        <a href="#sleep" class="nav-link">СОН</a>
-        <a href="#journal" class="nav-link">ЖУРНАЛ</a>
-        <a href="#rules" class="nav-link">ПРАВИЛА</a>
+        <a href="#top" class="nav-link" data-i18n="nav_home">ГЛАВНАЯ</a>
+        <a href="#tracker" class="nav-link" data-i18n="nav_tracker">ТРЕКЕР</a>
+        <a href="#planner" class="nav-link"><span data-i18n="nav_plans">ПЛАНЫ</span><span id="plan-count" class="nav-count"></span></a>
+        <a href="#sleep" class="nav-link" data-i18n="nav_sleep">СОН</a>
+        <a href="#journal" class="nav-link" data-i18n="nav_journal">ЖУРНАЛ</a>
+        <a href="#rules" class="nav-link" data-i18n="nav_rules">ПРАВИЛА</a>
         <span class="nav-spacer"></span>
+        <button class="nav-icon-btn" id="lang-toggle-btn" onclick="toggleLanguage()" title="Language">RU</button>
         <button class="nav-icon-btn" id="skin-toggle-btn" onclick="toggleSkinDropdown()" title="Theme">🎨</button>
         <button class="nav-icon-btn" onclick="openSettings()" title="Settings">⚙</button>
         <div id="skin-dropdown" class="skin-dropdown">
@@ -1086,13 +1087,13 @@
     </nav>
 
     <section class="hero reveal-target">
-        <div class="hero-quote" id="hero-quote">"The relentless pursuit of pleasure and avoidance of pain leads to pain."</div>
+        <div class="hero-quote" id="hero-quote" data-i18n="hero_quote">"The relentless pursuit of pleasure and avoidance of pain leads to pain."</div>
         <h1 class="hero-title">
             <span class="text-fill-layer">PROTOCOL 30</span>
             <span class="text-outline-layer">PROTOCOL 30</span>
         </h1>
         <div class="hero-meta">
-            <span class="hero-day">DAY <span id="hero-current-day">—</span> / 30</span>
+            <span class="hero-day"><span data-i18n="hero_day">DAY</span> <span id="hero-current-day">—</span> <span data-i18n="hero_of_30">/ 30</span></span>
             <span class="hero-streak" id="hero-streak"></span>
         </div>
         <div class="hero-progress">
@@ -1106,17 +1107,17 @@
 
         <header>
             <div>
-                <div class="header-subtitle">// WAR ROOM</div>
+                <div class="header-subtitle" data-i18n="header_warroom">// WAR ROOM</div>
                 <div class="progress-container">
                     <div class="progress-fill" id="overall-progress"></div>
                 </div>
             </div>
             <div class="header-right">
                 <div class="stats-panel">
-                    <div>ВЫПОЛНЕНО: <span id="done-count" class="highlight">0</span> / <span id="total-count">0</span></div>
-                    <div>STATUS: <span style="color:var(--color-done)">ACTIVE</span></div>
+                    <div><span data-i18n="header_completed">ВЫПОЛНЕНО</span>: <span id="done-count" class="highlight">0</span> / <span id="total-count">0</span></div>
+                    <div><span data-i18n="header_status">STATUS</span>: <span data-i18n="header_active" style="color:var(--color-done)">ACTIVE</span></div>
                 </div>
-                <button id="edit-toggle" class="btn" onclick="toggleEditMode()">⚙ EDIT</button>
+                <button id="edit-toggle" class="btn" data-i18n="edit" onclick="toggleEditMode()">⚙ EDIT</button>
             </div>
         </header>
 
@@ -1137,7 +1138,7 @@
 
         <!-- PLANNER -->
         <div id="planner" class="planner-section reveal-target">
-            <div class="section-title">🎯 ПЛАНИРОВЩИК</div>
+            <div class="section-title" data-i18n="planner_title">🎯 ПЛАНИРОВЩИК</div>
             <div class="planner-container">
                 <div class="planner-sidebar" id="planner-sidebar">
                     <!-- список планов, инжектится JS -->
@@ -1159,7 +1160,7 @@
 
         <!-- SLEEP -->
         <div id="sleep" class="sleep-section reveal-target">
-            <div class="section-title">📉 ГРАФИК СНА (Цель: 8ч)</div>
+            <div class="section-title" data-i18n="sleep_section_title">📉 ГРАФИК СНА (Цель: 8ч)</div>
             <div class="sleep-grid">
                 <div class="graph-container">
                     <canvas id="sleepCanvas"></canvas>
@@ -1170,7 +1171,7 @@
 
         <!-- JOURNAL -->
         <div id="journal" class="log-section reveal-target">
-            <div class="section-title">📝 ТАКТИЧЕСКИЙ ЖУРНАЛ</div>
+            <div class="section-title" data-i18n="journal_section_title">📝 ТАКТИЧЕСКИЙ ЖУРНАЛ</div>
 
             <div class="journal-container">
                 <!-- Sidebar List -->
@@ -1181,10 +1182,10 @@
 
                 <!-- Main Edit Area -->
                 <div class="journal-main">
-                    <textarea id="daily-log" class="log-area" placeholder="Опиши состояние. Анализируй срывы. Фиксируй победы..."></textarea>
+                    <textarea id="daily-log" class="log-area" placeholder="Опиши состояние. Анализируй срывы. Фиксируй победы..." data-i18n="journal_placeholder" data-i18n-attr="placeholder"></textarea>
                     <div class="journal-controls">
-                        <button class="btn" onclick="newEntry()">+ НОВАЯ ЗАПИСЬ</button>
-                        <button class="btn btn-primary" onclick="saveEntry()">СОХРАНИТЬ В АРХИВ</button>
+                        <button class="btn" data-i18n="new_entry" onclick="newEntry()">+ НОВАЯ ЗАПИСЬ</button>
+                        <button class="btn btn-primary" data-i18n="save_to_archive" onclick="saveEntry()">СОХРАНИТЬ В АРХИВ</button>
                     </div>
                 </div>
             </div>
@@ -1192,7 +1193,7 @@
 
         <!-- RULES SECTION -->
         <div id="rules" class="rules-section reveal-target">
-            <h2 style="color:#fff; margin-bottom: 20px; font-size:24px;">⛔ КОДЕКС ПОВЕДЕНИЯ</h2>
+            <h2 style="color:#fff; margin-bottom: 20px; font-size:24px;" data-i18n="rules_heading">⛔ КОДЕКС ПОВЕДЕНИЯ</h2>
 
             <div class="rule-block">
                 <div class="rule-title">✅ ПРАВИЛО №1: ПИТАНИЕ</div>
@@ -1251,7 +1252,7 @@
                 <li>4. УПАЛ - ОТЖАЛСЯ (МАКСИМУМ РАЗ)</li>
                 <li>5. ВСПОМНИ: БОЛЬ — ЭТО РОСТ</li>
             </ul>
-            <button class="close-panic" onclick="togglePanic(false)">Я В ПОРЯДКЕ, ПРОДОЛЖАЕМ</button>
+            <button class="close-panic" data-i18n="close_panic" onclick="togglePanic(false)">Я В ПОРЯДКЕ, ПРОДОЛЖАЕМ</button>
         </div>
     </div>
 
@@ -1262,18 +1263,18 @@
             <div style="color:#888; font-size:12px; margin: 10px 0 5px 0;">Цвет:</div>
             <div id="habit-modal-colors" class="color-picker"></div>
             <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:15px;">
-                <button class="btn" onclick="closeHabitModal()">ОТМЕНА</button>
-                <button class="btn btn-primary" onclick="confirmAddHabit()">ДОБАВИТЬ</button>
+                <button class="btn" data-i18n="cancel_modal" onclick="closeHabitModal()">ОТМЕНА</button>
+                <button class="btn btn-primary" data-i18n="add_habit_btn" onclick="confirmAddHabit()">ДОБАВИТЬ</button>
             </div>
         </div>
     </div>
 
     <div id="settings-modal" class="modal-overlay">
         <div class="modal-content settings-content">
-            <h3 style="color:#fff; margin-bottom:20px;">⚙ SETTINGS</h3>
+            <h3 style="color:#fff; margin-bottom:20px;" data-i18n="settings_heading">⚙ SETTINGS</h3>
 
             <div class="settings-section">
-                <div class="settings-label">🎨 SKIN</div>
+                <div class="settings-label" data-i18n="settings_theme_label">🎨 SKIN</div>
                 <div class="settings-options">
                     <label class="settings-radio">
                         <input type="radio" name="settings-theme" value="protocol30" onchange="setTheme('protocol30')">
@@ -1287,43 +1288,43 @@
             </div>
 
             <div class="settings-section">
-                <div class="settings-label">✨ EFFECTS</div>
+                <div class="settings-label" data-i18n="settings_effects_label">✨ EFFECTS</div>
                 <div class="settings-options">
                     <label class="settings-check">
                         <input type="checkbox" id="opt-spotlight" onchange="setEffect('spotlight', this.checked)">
-                        <span>Cursor spotlight</span>
+                        <span data-i18n="opt_spotlight">Cursor spotlight</span>
                     </label>
                     <label class="settings-check">
                         <input type="checkbox" id="opt-reveal" onchange="setEffect('reveal', this.checked)">
-                        <span>Reveal animations</span>
+                        <span data-i18n="opt_reveal_label">Reveal animations</span>
                     </label>
                     <label class="settings-check">
                         <input type="checkbox" id="opt-confetti" onchange="setEffect('confetti', this.checked)">
-                        <span>Confetti at 100%</span>
+                        <span data-i18n="opt_confetti">Confetti at 100%</span>
                     </label>
                 </div>
             </div>
 
             <div class="settings-section">
-                <div class="settings-label">🌐 LANGUAGE</div>
+                <div class="settings-label" data-i18n="settings_language_label">🌐 LANGUAGE</div>
                 <div class="settings-options">
                     <label class="settings-radio">
-                        <input type="radio" name="settings-lang" value="ru" checked>
+                        <input type="radio" name="settings-lang" value="ru" onchange="setLanguage('ru')">
                         <span>Русский</span>
                     </label>
-                    <label class="settings-radio" style="opacity:0.5; cursor:not-allowed;">
-                        <input type="radio" name="settings-lang" value="en" disabled>
-                        <span>English (coming soon)</span>
+                    <label class="settings-radio">
+                        <input type="radio" name="settings-lang" value="en" onchange="setLanguage('en')">
+                        <span>English</span>
                     </label>
                 </div>
             </div>
 
             <div class="settings-section">
-                <button class="btn btn-reset" onclick="resetData()">🗑 ОЧИСТИТЬ ВСЕ ДАННЫЕ</button>
+                <button class="btn btn-reset" data-i18n="settings_reset_full" onclick="resetData()">🗑 ОЧИСТИТЬ ВСЕ ДАННЫЕ</button>
             </div>
 
             <div style="display:flex; justify-content:flex-end; margin-top:15px;">
-                <button class="btn" onclick="closeSettings()">ЗАКРЫТЬ</button>
+                <button class="btn" data-i18n="close" onclick="closeSettings()">ЗАКРЫТЬ</button>
             </div>
         </div>
     </div>
@@ -1386,16 +1387,26 @@
             journal_placeholder: 'Write your thoughts...',
             save_entry: 'SAVE',
             empty_journal: 'Empty',
+            // Section titles
+            planner_title: '🎯 PLANNER',
+            sleep_section_title: '📉 SLEEP CHART (Goal: 8h)',
+            journal_section_title: '📝 TACTICAL JOURNAL',
             // Rules
             rules_title: '// RULES',
+            rules_heading: '⛔ CODE OF CONDUCT',
             // Settings
             settings_title: '// SETTINGS',
+            settings_heading: '⚙ SETTINGS',
             settings_theme: 'Theme',
+            settings_theme_label: '🎨 SKIN',
             settings_effects: 'Effects',
+            settings_effects_label: '✨ EFFECTS',
             opt_spotlight: 'Cursor spotlight',
             opt_reveal: 'Scroll reveal',
+            opt_reveal_label: 'Reveal animations',
             opt_confetti: 'Confetti on 100%',
             settings_language: 'Language',
+            settings_language_label: '🌐 LANGUAGE',
             settings_sync: '// SYNC',
             sign_in_to_sync: 'Sign in to sync to cloud',
             local_data_stays: 'Local data stays on this device.',
@@ -1405,8 +1416,14 @@
             confirm_delete_account: 'This will permanently delete your cloud data. Local data on this device stays. Continue?',
             settings_reset: 'Reset all data',
             reset_btn: 'RESET',
+            settings_reset_full: '🗑 CLEAR ALL DATA',
             confirm_reset: 'Erase all data and start over?',
             close: 'CLOSE',
+            new_entry: '+ NEW ENTRY',
+            save_to_archive: 'SAVE TO ARCHIVE',
+            add_habit_btn: 'ADD',
+            cancel_modal: 'CANCEL',
+            close_panic: 'I AM OK, CONTINUE',
             // Auth modal
             cloud_sync_title: '// CLOUD SYNC',
             email_placeholder: 'email@example.com',
@@ -1480,13 +1497,22 @@
             journal_placeholder: 'Запиши свои мысли...',
             save_entry: 'СОХРАНИТЬ',
             empty_journal: 'Пусто',
+            planner_title: '🎯 ПЛАНИРОВЩИК',
+            sleep_section_title: '📉 ГРАФИК СНА (Цель: 8ч)',
+            journal_section_title: '📝 ТАКТИЧЕСКИЙ ЖУРНАЛ',
             rules_title: '// ПРАВИЛА',
+            rules_heading: '⛔ КОДЕКС ПОВЕДЕНИЯ',
             settings_title: '// НАСТРОЙКИ',
+            settings_heading: '⚙ НАСТРОЙКИ',
             settings_theme: 'Тема',
+            settings_theme_label: '🎨 ОФОРМЛЕНИЕ',
             settings_effects: 'Эффекты',
+            settings_effects_label: '✨ ЭФФЕКТЫ',
             opt_spotlight: 'Курсор-прожектор',
             opt_reveal: 'Скролл-анимация',
+            opt_reveal_label: 'Скролл-анимация',
             opt_confetti: 'Конфетти на 100%',
+            settings_language_label: '🌐 ЯЗЫК',
             settings_language: 'Язык',
             settings_sync: '// СИНХРОНИЗАЦИЯ',
             sign_in_to_sync: 'Войти для синхронизации',
@@ -1497,8 +1523,14 @@
             confirm_delete_account: 'Это удалит твои данные в облаке навсегда. Локальные данные на устройстве остаются. Продолжить?',
             settings_reset: 'Сбросить все данные',
             reset_btn: 'СБРОС',
+            settings_reset_full: '🗑 ОЧИСТИТЬ ВСЕ ДАННЫЕ',
             confirm_reset: 'Стереть всё и начать заново?',
             close: 'ЗАКРЫТЬ',
+            new_entry: '+ НОВАЯ ЗАПИСЬ',
+            save_to_archive: 'СОХРАНИТЬ В АРХИВ',
+            add_habit_btn: 'ДОБАВИТЬ',
+            cancel_modal: 'ОТМЕНА',
+            close_panic: 'Я В ПОРЯДКЕ, ПРОДОЛЖАЕМ',
             cloud_sync_title: '// ОБЛАКО',
             email_placeholder: 'email@example.com',
             send_magic_link: 'ПОЛУЧИТЬ ССЫЛКУ',
