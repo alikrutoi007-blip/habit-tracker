@@ -1418,6 +1418,7 @@
             reset_btn: 'RESET',
             settings_reset_full: '🗑 CLEAR ALL DATA',
             confirm_reset: 'Erase all data and start over?',
+            confirm_delete_habit: 'Delete habit? All its checkmarks will be removed.',
             close: 'CLOSE',
             new_entry: '+ NEW ENTRY',
             save_to_archive: 'SAVE TO ARCHIVE',
@@ -1453,7 +1454,26 @@
             toast_signed_out: '>> SIGNED OUT',
             toast_account_deleted: '>> ACCOUNT DELETED',
             toast_invalid_email: '>> INVALID EMAIL',
-            toast_auth_error: '>> AUTH ERROR — TRY AGAIN'
+            toast_auth_error: '>> AUTH ERROR — TRY AGAIN',
+            toast_plan_archived: '>> PLAN ARCHIVED',
+            toast_saved_to_downloads: '>> SAVED TO DOWNLOADS',
+            toast_day_complete: '>> DAY COMPLETE 🔥',
+            streak_days: 'days',
+            archive_toggle_label: '🏆 COMPLETED PLANS',
+            closed_on: 'closed',
+            restore_plan: '↩ RESTORE',
+            delete_forever: '🗑 DELETE FOREVER',
+            plan_select_prompt: 'Select a plan or create a new one.',
+            plan_unavailable: 'Plan unavailable.',
+            plan_progress: 'progress',
+            plan_deadline_label: 'deadline',
+            plan_duplicate_btn: '⎘ DUPLICATE',
+            plan_delete_btn: '🗑 DELETE',
+            plan_close_btn: 'CLOSE PLAN',
+            new_plan_name_placeholder: 'Plan name (e.g. May Plan)',
+            new_plan_deadline_label: 'Deadline (opt.):',
+            new_plan_hint: 'Create a plan, then add items.',
+            title_required: 'Title is required'
         },
         ru: {
             nav_home: 'ГЛАВНАЯ',
@@ -1525,6 +1545,7 @@
             reset_btn: 'СБРОС',
             settings_reset_full: '🗑 ОЧИСТИТЬ ВСЕ ДАННЫЕ',
             confirm_reset: 'Стереть всё и начать заново?',
+            confirm_delete_habit: 'Удалить привычку? Все её галочки тоже удалятся.',
             close: 'ЗАКРЫТЬ',
             new_entry: '+ НОВАЯ ЗАПИСЬ',
             save_to_archive: 'СОХРАНИТЬ В АРХИВ',
@@ -1557,7 +1578,26 @@
             toast_signed_out: '>> ВЫХОД ВЫПОЛНЕН',
             toast_account_deleted: '>> АККАУНТ УДАЛЁН',
             toast_invalid_email: '>> НЕВЕРНЫЙ EMAIL',
-            toast_auth_error: '>> ОШИБКА АВТОРИЗАЦИИ'
+            toast_auth_error: '>> ОШИБКА АВТОРИЗАЦИИ',
+            toast_plan_archived: '>> ПЛАН В АРХИВЕ',
+            toast_saved_to_downloads: '>> СОХРАНЕНО В ЗАГРУЗКИ',
+            toast_day_complete: '>> ДЕНЬ ВЫПОЛНЕН 🔥',
+            streak_days: 'дней',
+            archive_toggle_label: '🏆 ВЫПОЛНЕННЫЕ ПЛАНЫ',
+            closed_on: 'закрыт',
+            restore_plan: '↩ ВЕРНУТЬ',
+            delete_forever: '🗑 УДАЛИТЬ НАВСЕГДА',
+            plan_select_prompt: 'Выбери план слева или создай новый.',
+            plan_unavailable: 'План недоступен.',
+            plan_progress: 'прогресс',
+            plan_deadline_label: 'дедлайн',
+            plan_duplicate_btn: '⎘ КОПИЯ',
+            plan_delete_btn: '🗑 УДАЛИТЬ',
+            plan_close_btn: 'ЗАКРЫТЬ ПЛАН',
+            new_plan_name_placeholder: 'Название плана (напр. План на Май)',
+            new_plan_deadline_label: 'Дедлайн (опц.):',
+            new_plan_hint: 'Создай план, потом добавишь пункты.',
+            title_required: 'Название обязательно'
         }
     };
 
@@ -1638,7 +1678,7 @@
         const streakEl = document.getElementById('hero-streak');
         if (streakEl) {
             if (streak >= 2) {
-                streakEl.textContent = '🔥 ' + streak + ' дней';
+                streakEl.textContent = '🔥 ' + streak + ' ' + t('streak_days');
                 streakEl.classList.add('visible');
             } else {
                 streakEl.classList.remove('visible');
@@ -1812,7 +1852,7 @@
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
             if (typeof showToast === 'function') {
-                showToast('>> SAVED TO DOWNLOADS');
+                showToast(t('toast_saved_to_downloads'));
             }
         });
     }
@@ -1888,13 +1928,27 @@
         localStorage.setItem(flagKey, '1');
         fireConfetti();
         if (typeof showToast === 'function') {
-            showToast('>> DAY COMPLETE 🔥');
+            showToast(t('toast_day_complete'));
         }
     }
 
     // === INIT ===
+    function renderAll() {
+        updateHero();
+        renderGrid();
+        renderDayCard();
+        renderSleepInputs();
+        renderJournalList();
+        renderPlanner();
+        renderArchive();
+        updateNavCounter();
+        updateStats();
+        drawSleepGraph();
+    }
+
     function init() {
         loadData();
+        applyLanguage();
         applyInitialTheme();
         applyEffectsOnLoad();
         renderGrid();
@@ -1962,7 +2016,7 @@
         if (editMode) {
             const addRow = document.createElement('button');
             addRow.className = 'add-habit-row';
-            addRow.textContent = '+ НОВАЯ ПРИВЫЧКА';
+            addRow.textContent = t('add_habit');
             addRow.onclick = addHabit;
             grid.appendChild(addRow);
         }
@@ -2012,7 +2066,7 @@
     function renderJournalList() {
         journalList.innerHTML = '';
         if(appData.journal.length === 0) {
-            journalList.innerHTML = '<div style="padding:10px; color:#444; text-align:center; font-size:12px;">Пусто</div>';
+            journalList.innerHTML = '<div style="padding:10px; color:#444; text-align:center; font-size:12px;">' + escapeHtml(t('empty_journal')) + '</div>';
             return;
         }
 
@@ -2066,7 +2120,7 @@
         });
 
         const streak = calculateStreak();
-        document.getElementById('dc-streak').textContent = streak >= 2 ? '🔥 ' + streak + ' дней' : '';
+        document.getElementById('dc-streak').textContent = streak >= 2 ? '🔥 ' + streak + ' ' + t('streak_days') : '';
     }
 
     function changeDayCard(delta) {
@@ -2095,14 +2149,14 @@
     // === HABITS EDIT MODE ===
     function toggleEditMode() {
         editMode = !editMode;
-        document.getElementById('edit-toggle').textContent = editMode ? '✓ ГОТОВО' : '⚙ EDIT';
+        document.getElementById('edit-toggle').textContent = editMode ? t('done_edit') : t('edit');
         renderGrid();
     }
 
     function renameHabit(id) {
         const habit = appData.habitDefs.find(h => h.id === id);
         if (!habit) return;
-        const newName = prompt('Новое название привычки:', habit.name);
+        const newName = prompt(t('new_habit_name'), habit.name);
         if (newName && newName.trim() && newName.trim() !== habit.name) {
             habit.name = newName.trim();
             saveData();
@@ -2112,7 +2166,7 @@
     function deleteHabit(id) {
         const habit = appData.habitDefs.find(h => h.id === id);
         if (!habit) return;
-        if (!confirm(`Удалить привычку «${habit.name}»? Все её галочки тоже удалятся.`)) return;
+        if (!confirm(`«${habit.name}» — ${t('confirm_delete_habit')}`)) return;
         appData.habitDefs = appData.habitDefs.filter(h => h.id !== id);
         Object.keys(appData.habits).forEach(key => {
             if (key.startsWith(id + '_')) delete appData.habits[key];
@@ -2148,7 +2202,7 @@
 
     function confirmAddHabit() {
         const name = document.getElementById('habit-modal-name').value.trim();
-        if (!name) { alert('Название обязательно'); return; }
+        if (!name) { alert(t('title_required')); return; }
         const id = 'h_' + Date.now();
         appData.habitDefs.push({
             id,
@@ -2187,7 +2241,7 @@
             const empty = document.createElement('div');
             empty.className = 'planner-empty';
             empty.style.padding = '20px';
-            empty.textContent = 'нет активных планов';
+            empty.textContent = t('no_active_plans');
             sidebar.appendChild(empty);
         } else {
             const today = new Date().toISOString().slice(0,10);
@@ -2212,7 +2266,7 @@
 
         const newBtn = document.createElement('button');
         newBtn.className = 'plan-new-btn';
-        newBtn.textContent = '+ НОВЫЙ ПЛАН';
+        newBtn.textContent = t('new_plan');
         newBtn.onclick = newPlanForm;
         sidebar.appendChild(newBtn);
     }
@@ -2232,13 +2286,13 @@
         const main = document.getElementById('planner-main');
         if (!main) return;
         if (!selectedPlanId) {
-            main.innerHTML = '<div class="planner-empty">Выбери план слева или создай новый.</div>';
+            main.innerHTML = '<div class="planner-empty">' + escapeHtml(t('plan_select_prompt')) + '</div>';
             return;
         }
         const plan = getPlan(selectedPlanId);
         if (!plan || plan.status !== 'active') {
             selectedPlanId = null;
-            main.innerHTML = '<div class="planner-empty">План недоступен.</div>';
+            main.innerHTML = '<div class="planner-empty">' + escapeHtml(t('plan_unavailable')) + '</div>';
             return;
         }
         const done = plan.items.filter(i => i.done).length;
@@ -2256,8 +2310,8 @@
                        value="${escapeHtml(plan.title)}"
                        onchange="renamePlan('${plan.id}', this.value)" />
                 <div class="plan-meta">
-                    <span>прогресс: <strong>${done}/${total}</strong></span>
-                    <label>дедлайн:
+                    <span>${t('plan_progress')}: <strong>${done}/${total}</strong></span>
+                    <label>${t('plan_deadline_label')}:
                         <input type="date" value="${plan.deadline || ''}"
                                onchange="setPlanDeadline('${plan.id}', this.value)" />
                     </label>
@@ -2266,10 +2320,10 @@
             <div class="plan-items" id="plan-items-${plan.id}"></div>
             <div class="plan-actions">
                 <div style="display:flex; gap:8px;">
-                    <button class="btn" onclick="duplicatePlan('${plan.id}')">⎘ КОПИЯ</button>
-                    <button class="btn" onclick="deletePlanForever('${plan.id}')">🗑 УДАЛИТЬ</button>
+                    <button class="btn" onclick="duplicatePlan('${plan.id}')">${t('plan_duplicate_btn')}</button>
+                    <button class="btn" onclick="deletePlanForever('${plan.id}')">${t('plan_delete_btn')}</button>
                 </div>
-                <button class="btn btn-primary" onclick="closePlan('${plan.id}')">ЗАКРЫТЬ ПЛАН</button>
+                <button class="btn btn-primary" onclick="closePlan('${plan.id}')">${t('plan_close_btn')}</button>
             </div>
         `;
 
@@ -2294,7 +2348,7 @@
         });
         const adder = document.createElement('div');
         adder.className = 'plan-item-add';
-        adder.textContent = '+ пункт';
+        adder.textContent = t('plan_item_placeholder');
         adder.onclick = () => addItem(plan.id, '', true);
         wrap.appendChild(adder);
     }
@@ -2305,16 +2359,16 @@
         const main = document.getElementById('planner-main');
         main.innerHTML = `
             <div class="plan-header">
-                <input id="new-plan-title" type="text" class="plan-title-input" placeholder="Название плана (например: План на Май)" />
+                <input id="new-plan-title" type="text" class="plan-title-input" placeholder="${escapeHtml(t('new_plan_name_placeholder'))}" />
                 <div class="plan-meta">
-                    <label>Дедлайн (опц.):</label>
+                    <label>${t('new_plan_deadline_label')}</label>
                     <input id="new-plan-deadline" type="date" />
                 </div>
             </div>
-            <div class="planner-empty" style="text-align:left;">Создай план, потом добавишь пункты.</div>
+            <div class="planner-empty" style="text-align:left;">${escapeHtml(t('new_plan_hint'))}</div>
             <div class="plan-actions">
-                <button class="btn" onclick="cancelNewPlan()">ОТМЕНА</button>
-                <button class="btn btn-primary" onclick="createPlan()">СОЗДАТЬ</button>
+                <button class="btn" onclick="cancelNewPlan()">${t('cancel')}</button>
+                <button class="btn btn-primary" onclick="createPlan()">${t('create_plan')}</button>
             </div>
         `;
         setTimeout(() => document.getElementById('new-plan-title').focus(), 50);
@@ -2326,7 +2380,7 @@
 
     function createPlan() {
         const title = document.getElementById('new-plan-title').value.trim();
-        if (!title) { alert('Название обязательно'); return; }
+        if (!title) { alert(t('title_required')); return; }
         const deadline = document.getElementById('new-plan-deadline').value || null;
         const plan = {
             id: newPlanId(),
@@ -2366,7 +2420,7 @@
 
         if (plan.items.length > 0 && plan.items.every(i => i.done)) {
             archivePlan(plan);
-            showToast('>> PLAN ARCHIVED');
+            showToast(t('toast_plan_archived'));
             return;
         }
         saveData();
@@ -2439,7 +2493,7 @@
     function deletePlanForever(planId) {
         const plan = getPlan(planId);
         if (!plan) return;
-        if (!confirm(`Удалить план «${plan.title}» полностью? Это нельзя отменить.`)) return;
+        if (!confirm(`«${plan.title}» — ${t('confirm_delete_plan')}`)) return;
         appData.plans = appData.plans.filter(p => p.id !== planId);
         if (selectedPlanId === planId) selectedPlanId = null;
         saveData();
@@ -2450,9 +2504,9 @@
         const done = plan.items.filter(i => i.done).length;
         const total = plan.items.length;
         if (total === 0) {
-            if (!confirm(`План «${plan.title}» без пунктов. Закрыть?`)) return;
+            if (!confirm(`«${plan.title}» — ${t('confirm_close_plan')}`)) return;
         } else if (done < total) {
-            if (!confirm(`Закрыть «${plan.title}» с ${total - done} невыполненных из ${total}?`)) return;
+            if (!confirm(`«${plan.title}» — ${t('confirm_close_plan')}`)) return;
         }
         archivePlan(plan);
     }
@@ -2472,7 +2526,7 @@
         const archived = appData.plans.filter(p => p.status === 'archived')
             .sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0));
         document.getElementById('archive-toggle-text').textContent =
-            `🏆 ВЫПОЛНЕННЫЕ ПЛАНЫ (${archived.length})`;
+            `${t('archive_toggle_label')} (${archived.length})`;
 
         archived.forEach(plan => {
             const done = plan.items.filter(i => i.done).length;
@@ -2485,15 +2539,15 @@
             card.innerHTML = `
                 <div class="archived-plan-header" onclick="toggleArchivedCard(this)">
                     <span class="archived-plan-title">${escapeHtml(plan.title)}</span>
-                    <span class="archived-plan-meta">${done}/${total} · закрыт ${closedDate}</span>
+                    <span class="archived-plan-meta">${done}/${total} · ${t('closed_on')} ${closedDate}</span>
                 </div>
                 <div class="archived-plan-items">
                     ${plan.items.map(i =>
                         `<div class="archived-plan-item ${i.done ? 'done' : ''}">${i.done ? '✓' : '·'} ${escapeHtml(i.text)}</div>`
                     ).join('')}
                     <div class="archived-plan-actions">
-                        <button class="btn" onclick="restorePlan('${plan.id}'); event.stopPropagation();">↩ ВЕРНУТЬ</button>
-                        <button class="btn" onclick="deleteArchivedPlan('${plan.id}'); event.stopPropagation();">🗑 УДАЛИТЬ НАВСЕГДА</button>
+                        <button class="btn" onclick="restorePlan('${plan.id}'); event.stopPropagation();">${t('restore_plan')}</button>
+                        <button class="btn" onclick="deleteArchivedPlan('${plan.id}'); event.stopPropagation();">${t('delete_forever')}</button>
                     </div>
                 </div>
             `;
@@ -2517,7 +2571,7 @@
     function deleteArchivedPlan(planId) {
         const plan = getPlan(planId);
         if (!plan) return;
-        if (!confirm(`Удалить «${plan.title}» из архива навсегда? Это нельзя отменить.`)) return;
+        if (!confirm(`«${plan.title}» — ${t('confirm_delete_archive')}`)) return;
         appData.plans = appData.plans.filter(p => p.id !== planId);
         saveData();
     }
@@ -2600,7 +2654,7 @@
     }
 
     function resetData() {
-        if (confirm('УДАЛИТЬ ВЕСЬ ПРОГРЕСС, ЖУРНАЛ, ПЛАНЫ И КАСТОМНЫЕ ПРИВЫЧКИ?')) {
+        if (confirm(t('confirm_reset'))) {
             localStorage.removeItem('hardmode_v4');
             location.reload();
         }
@@ -2629,6 +2683,10 @@
         _toastTimer = setTimeout(() => t.classList.remove('visible'), duration);
     }
 
+    function toggleLanguage() {
+        setLanguage(currentLang === 'ru' ? 'en' : 'ru');
+    }
+
     // === SETTINGS ===
     function toggleSkinDropdown() {
         document.getElementById('skin-dropdown').classList.toggle('visible');
@@ -2645,7 +2703,7 @@
         document.getElementById('skin-dropdown').classList.remove('visible');
         triggerHeroFillAnim();
         if (typeof showToast === 'function') {
-            showToast('>> THEME: ' + name.toUpperCase());
+            showToast('>> ' + (currentLang === 'ru' ? 'ТЕМА' : 'THEME') + ': ' + name.toUpperCase());
         }
     }
 
@@ -2657,6 +2715,9 @@
         document.getElementById('opt-spotlight').checked = localStorage.getItem('spotlightEnabled') !== 'false';
         document.getElementById('opt-reveal').checked = localStorage.getItem('revealEnabled') !== 'false';
         document.getElementById('opt-confetti').checked = localStorage.getItem('confettiEnabled') !== 'false';
+
+        const langInput = document.querySelector('input[name="settings-lang"][value="' + currentLang + '"]');
+        if (langInput) langInput.checked = true;
 
         document.getElementById('settings-modal').classList.add('visible');
     }
