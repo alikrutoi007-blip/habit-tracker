@@ -1650,13 +1650,98 @@
 
     const HABIT_COLORS = ['#3498db','#f1c40f','#e74c3c','#2ecc71','#9b59b6','#95a5a6','#1abc9c','#34495e'];
 
-    let appData = {
-        habits: {},
-        sleep: new Array(TOTAL_DAYS).fill(''),
-        journal: [],
-        habitDefs: [],
-        plans: []
+    // === REPOSITORY ===
+    const Repository = {
+        state: {
+            habits: {},
+            sleep: new Array(TOTAL_DAYS).fill(''),
+            journal: [],
+            plans: [],
+            archive: [],
+            habitDefs: [
+                { id: 'h1', name: '🚿 Холодный душ', color: '#3498db' },
+                { id: 'h2', name: '🚗 ПДД (30+ мин)', color: '#f1c40f' },
+                { id: 'h3', name: '💪 Тренировка / Активность', color: '#e74c3c' },
+                { id: 'h4', name: '🍽 Режим еды (без экрана)', color: '#2ecc71' },
+                { id: 'h5', name: '❌ NO FAP / NO PORN', color: '#9b59b6' },
+                { id: 'h6', name: '🚫 NO CIGARETTES', color: '#95a5a6' },
+                { id: 'h7', name: '📖 Чтение (20+ мин)', color: '#1abc9c' },
+                { id: 'h8', name: '💤 Сон до 23:30', color: '#34495e' }
+            ],
+            _schemaVersion: 1,
+            _updatedAt: null
+        },
+
+        load() {
+            const saved = localStorage.getItem('hardmode_v4');
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    this.state.habits = parsed.habits || {};
+                    this.state.sleep = parsed.sleep || new Array(TOTAL_DAYS).fill('');
+                    this.state.journal = parsed.journal || [];
+                    this.state.plans = parsed.plans || [];
+                    this.state.archive = parsed.archive || [];
+                    this.state.habitDefs = (parsed.habitDefs && parsed.habitDefs.length)
+                        ? parsed.habitDefs.map((h, i) => ({ order: i, ...h }))
+                        : DEFAULT_HABITS.map((h, i) => ({ ...h, order: i }));
+                    this.state._schemaVersion = parsed._schemaVersion || 1;
+                    this.state._updatedAt = parsed._updatedAt || null;
+                } catch (e) {
+                    console.warn('Corrupt local data, keeping defaults:', e);
+                }
+            } else {
+                this.state.habitDefs = DEFAULT_HABITS.map((h, i) => ({ ...h, order: i }));
+                this.state.plans = [];
+            }
+        },
+
+        save() {
+            this.state._updatedAt = new Date().toISOString();
+            localStorage.setItem('hardmode_v4', JSON.stringify(this.state));
+            if (typeof Auth !== 'undefined' && Auth.isLoggedIn && Auth.isLoggedIn()) {
+                if (typeof SyncEngine !== 'undefined') SyncEngine.markDirty();
+            }
+        },
+
+        applyCloudState(cloudState) {
+            if (!cloudState) return;
+            Object.assign(this.state, cloudState);
+            localStorage.setItem('hardmode_v4', JSON.stringify(this.state));
+        },
+
+        hasData() {
+            return Object.keys(this.state.habits).length > 0
+                || (this.state.plans && this.state.plans.length > 0)
+                || (this.state.journal && this.state.journal.length > 0)
+                || (this.state.archive && this.state.archive.length > 0);
+        },
+
+        summary() {
+            return {
+                habits: (this.state.habitDefs || []).length,
+                plans: (this.state.plans || []).length,
+                archive: (this.state.archive || []).length,
+                journal: (this.state.journal || []).length,
+                updatedAt: this.state._updatedAt
+            };
+        }
     };
+
+    const appData = Repository.state;
+
+    function loadData() { Repository.load(); }
+    function saveData() {
+        Repository.save();
+        updateHero();
+        if (typeof renderDayCard === 'function') renderDayCard();
+        updateStats();
+        drawSleepGraph();
+        renderJournalList();
+        if (typeof renderPlanner === 'function') renderPlanner();
+        if (typeof renderArchive === 'function') renderArchive();
+        if (typeof updateNavCounter === 'function') updateNavCounter();
+    }
 
     let editMode = false;
     let selectedPlanId = null;
@@ -1712,36 +1797,6 @@
         } else {
             title.classList.remove('animate-fill');
         }
-    }
-
-    // === STORAGE ===
-    function loadData() {
-        const saved = localStorage.getItem('hardmode_v4');
-        if (saved) {
-            const parsed = JSON.parse(saved);
-            appData.habits = parsed.habits || {};
-            appData.sleep = parsed.sleep || new Array(TOTAL_DAYS).fill('');
-            appData.journal = parsed.journal || [];
-            appData.habitDefs = (parsed.habitDefs && parsed.habitDefs.length)
-                ? parsed.habitDefs.map((h, i) => ({ order: i, ...h }))
-                : DEFAULT_HABITS.map((h, i) => ({ ...h, order: i }));
-            appData.plans = parsed.plans || [];
-        } else {
-            appData.habitDefs = DEFAULT_HABITS.map((h, i) => ({ ...h, order: i }));
-            appData.plans = [];
-        }
-    }
-
-    function saveData() {
-        localStorage.setItem('hardmode_v4', JSON.stringify(appData));
-        updateHero();
-        if (typeof renderDayCard === 'function') renderDayCard();
-        updateStats();
-        drawSleepGraph();
-        renderJournalList();
-        if (typeof renderPlanner === 'function') renderPlanner();
-        if (typeof renderArchive === 'function') renderArchive();
-        if (typeof updateNavCounter === 'function') updateNavCounter();
     }
 
     // --- RENDERERS ---
