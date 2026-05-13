@@ -1091,7 +1091,7 @@
         <a href="#rules" class="nav-link" data-i18n="nav_rules">ПРАВИЛА</a>
         <span class="nav-spacer"></span>
         <button class="nav-icon-btn" id="lang-toggle-btn" onclick="toggleLanguage()" title="Language">RU</button>
-        <button class="nav-icon-btn" id="signin-btn" data-i18n="sign_in" onclick="openSignIn()" title="Sign in">SIGN IN</button>
+        <button class="nav-icon-btn" id="signin-btn" onclick="openSignIn()" title="Sign in">SIGN IN</button>
         <button class="nav-icon-btn" id="skin-toggle-btn" onclick="toggleSkinDropdown()" title="Theme">🎨</button>
         <button class="nav-icon-btn" onclick="openSettings()" title="Settings">⚙</button>
         <div id="skin-dropdown" class="skin-dropdown">
@@ -1478,6 +1478,8 @@
             toast_account_deleted: '>> ACCOUNT DELETED',
             toast_invalid_email: '>> INVALID EMAIL',
             toast_auth_error: '>> AUTH ERROR — TRY AGAIN',
+            empty_entry_alert: 'Empty entry',
+            plan_copy_suffix: ' (copy)',
             toast_plan_archived: '>> PLAN ARCHIVED',
             toast_saved_to_downloads: '>> SAVED TO DOWNLOADS',
             toast_day_complete: '>> DAY COMPLETE 🔥',
@@ -1602,6 +1604,8 @@
             toast_account_deleted: '>> АККАУНТ УДАЛЁН',
             toast_invalid_email: '>> НЕВЕРНЫЙ EMAIL',
             toast_auth_error: '>> ОШИБКА АВТОРИЗАЦИИ',
+            empty_entry_alert: 'Пустая запись',
+            plan_copy_suffix: ' (копия)',
             toast_plan_archived: '>> ПЛАН В АРХИВЕ',
             toast_saved_to_downloads: '>> СОХРАНЕНО В ЗАГРУЗКИ',
             toast_day_complete: '>> ДЕНЬ ВЫПОЛНЕН 🔥',
@@ -2395,7 +2399,7 @@
 
     function saveEntry() {
         const text = logArea.value.trim();
-        if(!text) return alert("Пустая запись");
+        if(!text) return alert(t('empty_entry_alert'));
 
         const newEntry = {
             id: Date.now(),
@@ -2827,7 +2831,7 @@
         if (!plan) return;
         const copy = {
             id: newPlanId(),
-            title: plan.title + ' (копия)',
+            title: plan.title + t('plan_copy_suffix'),
             deadline: plan.deadline,
             items: plan.items.map(i => ({ id: newItemId(), text: i.text, done: false })),
             status: 'active',
@@ -3068,6 +3072,7 @@
         const langInput = document.querySelector('input[name="settings-lang"][value="' + currentLang + '"]');
         if (langInput) langInput.checked = true;
 
+        if (typeof updateAuthUI === 'function') updateAuthUI();
         document.getElementById('settings-modal').classList.add('visible');
     }
 
@@ -3102,12 +3107,15 @@
         }
     });
 
+    let _loginHandled = false;
     init();
     Auth.init();
     Auth.onChange(function(event, user) {
         updateAuthUI();
-        applyLanguage();
-        if (event === 'SIGNED_IN') {
+        if (event === 'SIGNED_OUT') {
+            _loginHandled = false;
+        } else if (event === 'SIGNED_IN' && !_loginHandled) {
+            _loginHandled = true;
             showToast(t('toast_signed_in'));
             handleLogin();
         }
