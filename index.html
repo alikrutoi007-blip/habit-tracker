@@ -1807,7 +1807,77 @@
         }
     }
 
-    function handleLogin() {}
+    let _pendingMigration = null;
+
+    async function handleLogin() {
+        const localHasData = Repository.hasData();
+        let cloudState = null;
+        try {
+            cloudState = await SyncEngine.pullFromCloud();
+        } catch (e) {
+            console.warn('pullFromCloud failed:', e);
+        }
+        const cloudHasData = cloudState && (
+            (cloudState.habits && Object.keys(cloudState.habits).length)
+            || (cloudState.plans && cloudState.plans.length)
+            || (cloudState.journal && cloudState.journal.length)
+            || (cloudState.archive && cloudState.archive.length)
+        );
+
+        if (localHasData && !cloudHasData) {
+            SyncEngine.markDirty();
+            await SyncEngine.flush();
+            showToast(t('toast_data_synced_to_cloud'));
+        } else if (!localHasData && cloudHasData) {
+            Repository.applyCloudState(cloudState);
+            renderAll();
+            applyLanguage();
+            showToast(t('toast_data_loaded_from_cloud'));
+        } else if (localHasData && cloudHasData) {
+            _pendingMigration = { local: JSON.parse(JSON.stringify(Repository.state)), cloud: cloudState };
+            showMigrationDialog();
+        }
+    }
+
+    function formatSummary(state) {
+        const habits = (state.habitDefs || []).length;
+        const plans = (state.plans || []).length;
+        const journal = (state.journal || []).length;
+        const updated = state._updatedAt
+            ? new Date(state._updatedAt).toLocaleString()
+            : '—';
+        return habits + ' ' + t('habits_count')
+            + ' · ' + plans + ' ' + t('plans_count')
+            + ' · ' + journal + ' ' + t('journal_count')
+            + '<br>' + escapeHtml(t('last_edit')) + ': ' + escapeHtml(updated);
+    }
+
+    function showMigrationDialog() {
+        if (!_pendingMigration) return;
+        document.getElementById('migration-local-summary').innerHTML = formatSummary(_pendingMigration.local);
+        document.getElementById('migration-cloud-summary').innerHTML = formatSummary(_pendingMigration.cloud);
+        document.getElementById('migration-modal').style.display = 'flex';
+    }
+
+    function closeMigrationDialog() {
+        document.getElementById('migration-modal').style.display = 'none';
+        _pendingMigration = null;
+    }
+
+    async function chooseMigration(which) {
+        if (!_pendingMigration) { closeMigrationDialog(); return; }
+        if (which === 'local') {
+            SyncEngine.markDirty();
+            await SyncEngine.flush();
+            showToast(t('toast_data_synced_to_cloud'));
+        } else if (which === 'cloud') {
+            Repository.applyCloudState(_pendingMigration.cloud);
+            renderAll();
+            applyLanguage();
+            showToast(t('toast_data_loaded_from_cloud'));
+        }
+        closeMigrationDialog();
+    }
 
     // === SYNC ENGINE ===
     const SyncEngine = {
