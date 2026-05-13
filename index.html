@@ -1809,6 +1809,55 @@
 
     function handleLogin() {}
 
+    // === SYNC ENGINE ===
+    const SyncEngine = {
+        dirty: false,
+        timer: null,
+        inflight: false,
+        retryTimer: null,
+
+        markDirty() {
+            this.dirty = true;
+            clearTimeout(this.timer);
+            this.timer = setTimeout(() => this.flush(), 1000);
+        },
+
+        async flush() {
+            if (!this.dirty || this.inflight || !Auth.isLoggedIn() || !Auth.client) return;
+            this.inflight = true;
+            const snapshot = JSON.parse(JSON.stringify(Repository.state));
+            try {
+                const { error } = await Auth.client.from('user_data').upsert({
+                    user_id: Auth.userId(),
+                    state: snapshot,
+                    updated_at: new Date().toISOString()
+                });
+                if (error) throw error;
+                this.dirty = false;
+                clearTimeout(this.retryTimer);
+                showToast(t('toast_synced'));
+            } catch (err) {
+                console.warn('Sync failed, will retry:', err);
+                showToast(t('toast_sync_failed'));
+                clearTimeout(this.retryTimer);
+                this.retryTimer = setTimeout(() => this.flush(), 5000);
+            } finally {
+                this.inflight = false;
+            }
+        },
+
+        async pullFromCloud() {
+            if (!Auth.isLoggedIn() || !Auth.client) return null;
+            const { data, error } = await Auth.client
+                .from('user_data')
+                .select('state')
+                .eq('user_id', Auth.userId())
+                .maybeSingle();
+            if (error) throw error;
+            return data ? data.state : null;
+        }
+    };
+
     // === STATE ===
     const TOTAL_DAYS = 30;
 
